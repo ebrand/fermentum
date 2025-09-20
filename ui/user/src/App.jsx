@@ -14,6 +14,7 @@ import CreateTenantPage from './pages/CreateTenantPage'
 import OnboardingPage from './pages/OnboardingPage'
 import BrewerySettingsPage from './pages/BrewerySettingsPage'
 import ProductionBatchesPage from './pages/ProductionBatchesPage'
+import UserProfilePage from './pages/UserProfilePage'
 
 // Protected Route component
 function ProtectedRoute({ children }) {
@@ -128,6 +129,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProductionBatchesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <UserProfilePage />
           </ProtectedRoute>
         }
       />

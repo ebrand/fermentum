@@ -167,6 +167,31 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const updateUser = async (userData) => {
+    try {
+      const response = await authAPI.updateUser(userData)
+      const updatedUser = response.data.data
+
+      setUser(updatedUser)
+
+      return { success: true, data: updatedUser }
+    } catch (error) {
+      console.error('Update user failed:', error)
+      throw new Error(error.response?.data?.message || 'Failed to update profile')
+    }
+  }
+
+  const updatePassword = async (passwordData) => {
+    try {
+      const response = await authAPI.updatePassword(passwordData)
+
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Update password failed:', error)
+      throw new Error(error.response?.data?.message || 'Failed to update password')
+    }
+  }
+
   const logout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken')
@@ -194,6 +219,8 @@ export function AuthProvider({ children }) {
     startGoogleOAuth,
     startAppleOAuth,
     authenticateOAuth,
+    updateUser,
+    updatePassword,
     logout,
   }
 

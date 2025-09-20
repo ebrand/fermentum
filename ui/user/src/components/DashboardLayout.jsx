@@ -124,9 +124,9 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                         <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
                         <p className="text-sm text-gray-500">{user?.email}</p>
                       </div>
-                      <a href="/settings/account" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <a href="/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <UserIcon className="w-4 h-4 mr-3" strokeWidth={2} />
-                        My Account
+                        My Profile
                       </a>
                       <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" strokeWidth={2} />
