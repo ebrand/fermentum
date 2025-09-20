@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTenant } from '../contexts/TenantContext'
 import {
@@ -36,6 +37,7 @@ function classNames(...classes) {
 export default function DashboardLayout({ children, title, subtitle, activeTab = 'Company', currentPage = 'Settings' }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { currentTenant } = useTenant()
   const dropdownRef = useRef(null)
@@ -124,10 +126,16 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                         <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
                         <p className="text-sm text-gray-500">{user?.email}</p>
                       </div>
-                      <a href="/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false)
+                          navigate('/profile')
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                      >
                         <UserIcon className="w-4 h-4 mr-3" strokeWidth={2} />
                         My Profile
-                      </a>
+                      </button>
                       <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" strokeWidth={2} />
                         Sign Out
