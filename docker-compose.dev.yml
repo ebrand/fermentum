@@ -1,0 +1,23 @@
+version: '3.8'
+
+networks:
+  fermentum:
+    external: true
+
+services:
+  ui-user:
+    build:
+      context: .
+      dockerfile: ui/user/Dockerfile
+    image: fermentum-ui-user:latest
+    container_name: ui-user
+    environment:
+      VITE_API_URL: https://api.fermentum.dev/api
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ui-user.rule=Host(`fermentum.dev`)"
+      - "traefik.http.routers.ui-user.entrypoints=websecure"
+      - "traefik.http.routers.ui-user.tls=true"
+      - "traefik.http.services.ui-user.loadbalancer.server.port=80"

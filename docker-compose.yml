@@ -1,0 +1,214 @@
+version: '3.8'
+
+networks:
+  fermentum:
+    name: fermentum
+
+services:
+  # Reverse Proxy
+  traefik:
+    image: traefik:v3.0
+    container_name: fermentum-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.letsencrypt.acme.email=dev@fermentum.local"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infrastructure/traefik:/etc/traefik/dynamic:ro
+      - ./infrastructure/data/letsencrypt:/letsencrypt
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.fermentum.dev`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.redirect-https.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.redirect-https.entrypoints=web"
+      - "traefik.http.routers.redirect-https.middlewares=redirect-to-https"
+
+  # Database
+  infra-postgres:
+    image: postgres:15-alpine
+    container_name: infra-postgres
+    environment:
+      POSTGRES_DB: fermentum
+      POSTGRES_USER: fermentum
+      POSTGRES_PASSWORD: dev_password_123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./infrastructure/data/postgres:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fermentum"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS Messaging
+  infra-nats:
+    image: nats:2.10-alpine
+    container_name: infra-nats
+    command:
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--http_port=8222"
+    volumes:
+      - ./infrastructure/data/nats:/data
+    ports:
+      - "4222:4222"  # NATS port
+      - "8222:8222"  # HTTP monitoring
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nats.rule=Host(`msg.fermentum.dev`)"
+      - "traefik.http.routers.nats.entrypoints=web"
+      - "traefik.http.services.nats.loadbalancer.server.port=8222"
+
+  # Redis (for session storage, caching)
+  infra-redis:
+    image: redis:7-alpine
+    container_name: infra-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ./infrastructure/data/redis:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - fermentum
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fermentum.dev
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ./infrastructure/data/pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      infra-postgres:
+        condition: service_healthy
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.fermentum.dev`)"
+      - "traefik.http.routers.pgadmin.entrypoints=websecure"
+      - "traefik.http.routers.pgadmin.tls=true"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
+
+  # Authentication Service
+  api-auth:
+    build:
+      context: .
+      dockerfile: services/auth-api/Dockerfile
+    container_name: api-auth
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+    ports:
+      - "5001:80"
+    depends_on:
+      infra-postgres:
+        condition: service_healthy
+      infra-redis:
+        condition: service_healthy
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-auth.rule=Host(`api.fermentum.dev`)"
+      - "traefik.http.routers.api-auth.entrypoints=websecure"
+      - "traefik.http.routers.api-auth.tls=true"
+      - "traefik.http.services.api-auth.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Admin Frontend
+  ui-admin:
+    build:
+      context: .
+      dockerfile: ui/admin/Dockerfile
+    container_name: ui-admin
+    environment:
+      VITE_API_URL: https://api.fermentum.dev/api
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-auth
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ui-admin.rule=Host(`admin.fermentum.dev`)"
+      - "traefik.http.routers.ui-admin.entrypoints=websecure"
+      - "traefik.http.routers.ui-admin.tls=true"
+      - "traefik.http.services.ui-admin.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # User Frontend (Main App)
+  ui-user:
+    build:
+      context: .
+      dockerfile: ui/user/Dockerfile
+    container_name: ui-user
+    environment:
+      VITE_API_URL: https://api.fermentum.dev/api
+    ports:
+      - "3001:80"
+    depends_on:
+      - api-auth
+    networks:
+      - fermentum
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ui-user.rule=Host(`fermentum.dev`)"
+      - "traefik.http.routers.ui-user.entrypoints=websecure"
+      - "traefik.http.routers.ui-user.tls=true"
+      - "traefik.http.services.ui-user.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:

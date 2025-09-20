@@ -1,0 +1,6 @@
+# SSL certificates and keys for local development
+# This directory will contain:
+# - fermentum-ca.crt (Certificate Authority)
+# - fermentum-ca.key (CA private key)
+# - client-dev.crt (Client certificate for testing)
+# - client-dev.key (Client private key)

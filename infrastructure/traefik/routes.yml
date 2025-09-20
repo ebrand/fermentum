@@ -1,0 +1,38 @@
+http:
+  routers:
+    user-ui:
+      rule: "Host(`fermentum.dev`)"
+      entryPoints:
+        - websecure
+      service: user-ui-service
+      tls: {}
+
+    admin-ui:
+      rule: "Host(`admin.fermentum.dev`)"
+      entryPoints:
+        - websecure
+      service: admin-ui-service
+      tls: {}
+
+    auth-api:
+      rule: "Host(`api.fermentum.dev`)"
+      entryPoints:
+        - websecure
+      service: auth-api-service
+      tls: {}
+
+  services:
+    user-ui-service:
+      loadBalancer:
+        servers:
+          - url: "http://ui-user:80"
+
+    admin-ui-service:
+      loadBalancer:
+        servers:
+          - url: "http://ui-admin:80"
+
+    auth-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://api-auth:80"
