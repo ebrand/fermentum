@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { useTenant } from '../contexts/TenantContext'
+import { useSession } from '../contexts/SessionContext'
 import DashboardLayout from '../components/DashboardLayout'
 import {
   ArrowRightOnRectangleIcon,
@@ -23,8 +22,9 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth()
-  const { currentTenant, loading: tenantLoading } = useTenant()
+  const { user, invalidateSession, currentTenant, loading: tenantLoading, userTenants } = useSession()
+
+  // Tenant data is already loaded in SessionContext
 
   // Mock data for dashboard metrics
   const [dashboardData, setDashboardData] = useState({
@@ -53,7 +53,7 @@ export default function DashboardPage() {
   })
 
   const handleLogout = () => {
-    logout()
+    invalidateSession()
   }
 
   const getActivityIcon = (type) => {
@@ -90,7 +90,6 @@ export default function DashboardPage() {
       currentPage="Dashboard"
     >
       <div className="w-full">
-
 
           {/* Alerts Section */}
           {dashboardData.alerts.length > 0 && (
@@ -345,6 +344,7 @@ export default function DashboardPage() {
 
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
             {/* Recent Activity */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
@@ -413,6 +413,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+        
         </div>
       </div>
     </DashboardLayout>

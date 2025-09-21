@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useSession } from '../contexts/SessionContext'
 import {
   HomeIcon,
   BuildingOfficeIcon,
@@ -22,6 +23,7 @@ import {
 const TenantNavigation = ({ isOpen, onClose }) => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { currentTenant } = useSession()
   const [expandedSections, setExpandedSections] = useState({
     brewery: true,
     production: false,
@@ -45,7 +47,7 @@ const TenantNavigation = ({ isOpen, onClose }) => {
       current: location.pathname === '/dashboard'
     },
     {
-      name: 'Brewery Management',
+      name: currentTenant?.tenantName || 'Brewery Management',
       icon: BuildingOfficeIcon,
       section: 'brewery',
       children: [

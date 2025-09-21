@@ -31,7 +31,7 @@ api.interceptors.response.use(
       // Clear tokens and redirect to login
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
-      window.location.href = '/login'
+      window.location.href = '/onboarding'
     }
     return Promise.reject(error)
   }
@@ -51,6 +51,16 @@ export const authAPI = {
   getGoogleOAuthUrl: (redirectUrl) => api.get('/auth/google-oauth-url', { params: { redirectUrl } }),
   getAppleOAuthUrl: (redirectUrl) => api.get('/auth/apple-oauth-url', { params: { redirectUrl } }),
   authenticateOAuth: (token) => api.post('/auth/oauth', { token }),
+  createAccountWithTenant: (data) => api.post('/auth/create-account-with-tenant', data),
+
+  // Session management endpoints
+  createSession: (data) => api.post('/session/create', data),
+  getCurrentSession: () => api.get('/session/current'),
+  setCurrentTenant: (data) => api.post('/session/set-current-tenant', data),
+  setCurrentBrewery: (data) => api.post('/session/set-current-brewery', data),
+  refreshTenants: () => api.post('/session/refresh-tenants'),
+  refreshBreweries: () => api.post('/session/refresh-breweries'),
+  invalidateSession: () => api.post('/session/invalidate'),
 }
 
 // Tenant API endpoints
@@ -71,6 +81,15 @@ export const paymentAPI = {
   updateSubscription: (tenantId, updateData) => api.put(`/payment/subscriptions/${tenantId}`, updateData),
   cancelSubscription: (tenantId) => api.delete(`/payment/subscriptions/${tenantId}`),
   createSetupIntent: (setupData) => api.post('/payment/setup-intent', setupData),
+}
+
+// Employee API endpoints
+export const employeeAPI = {
+  getEmployees: () => api.get('/employees'),
+  getEmployee: (employeeId) => api.get(`/employees/${employeeId}`),
+  createEmployee: (employeeData) => api.post('/employees', employeeData),
+  updateEmployee: (employeeId, employeeData) => api.put(`/employees/${employeeId}`, employeeData),
+  deleteEmployee: (employeeId) => api.delete(`/employees/${employeeId}`),
 }
 
 export default api

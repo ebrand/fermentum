@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useSession } from '../contexts/SessionContext'
 import {
   BeakerIcon,
   ChartBarIcon,
@@ -12,7 +12,8 @@ import {
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, invalidateSession } = useSession()
+
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
@@ -23,7 +24,7 @@ export default function LandingPage() {
   }
 
   const handleLogout = async () => {
-    await logout()
+    await invalidateSession()
     // Page will automatically update when auth state changes
   }
 
@@ -69,21 +70,48 @@ export default function LandingPage() {
               <span className="ml-2 text-2xl font-bold text-gray-900">Fermentum</span>
             </div>
             <div className="flex items-center gap-3">
-              {isAuthenticated && (
-                <button
-                  onClick={handleLogout}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Sign out
-                </button>
-              )}
+              {/* TEMPORARY: Always show logout for testing */}
               <button
-                onClick={handleGetStarted}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-fermentum-600 hover:bg-fermentum-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fermentum-500"
+                onClick={handleLogout}
+                className="text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
               >
-                {isAuthenticated ? 'Go to Dashboard' : 'Get Started'}
-                <ArrowRightIcon className="ml-2 h-4 w-4" />
+                LOGOUT
               </button>
+
+              {!isAuthenticated && (
+                <>
+                  <button
+                    onClick={() => navigate('/onboarding')}
+                    className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    onClick={handleGetStarted}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-fermentum-600 hover:bg-fermentum-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fermentum-500"
+                  >
+                    Create account
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </button>
+                </>
+              )}
+              {isAuthenticated && (
+                <>
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Sign out
+                  </button>
+                  <button
+                    onClick={handleGetStarted}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-fermentum-600 hover:bg-fermentum-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fermentum-500"
+                  >
+                    Go to Dashboard
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

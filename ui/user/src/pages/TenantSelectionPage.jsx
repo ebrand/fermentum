@@ -1,35 +1,42 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTenant } from '../contexts/TenantContext'
-import { useAuth } from '../contexts/AuthContext'
+import { useSession } from '../contexts/SessionContext'
 import { PlusIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline'
 
 export default function TenantSelectionPage() {
-  const { userTenants, selectTenant, loading, loadUserTenants } = useTenant()
-  const { user, logout } = useAuth()
+  const { userTenants, setCurrentTenant, loading, user, invalidateSession } = useSession()
   const navigate = useNavigate()
 
-  // Load user tenants when this page mounts
-  React.useEffect(() => {
-    if (user) {
-      loadUserTenants()
-    }
-  }, [user]) // Removed loadUserTenants from dependencies to prevent infinite loop
+  // User tenants are already loaded in SessionContext
 
   // Don't auto-redirect to onboarding - let user choose
 
-  const handleSelectTenant = (tenant) => {
-    selectTenant(tenant)
-    navigate('/dashboard')
+  const handleSelectTenant = async (tenant) => {
+    console.log('🏢 [TenantSelection] handleSelectTenant: Starting tenant selection for:', tenant)
+    console.log('🔑 [TenantSelection] handleSelectTenant: Current localStorage tokens:', {
+      accessToken: localStorage.getItem('accessToken') ? 'EXISTS' : 'MISSING',
+      refreshToken: localStorage.getItem('refreshToken') ? 'EXISTS' : 'MISSING',
+      allKeys: Object.keys(localStorage)
+    })
+
+    const result = await setCurrentTenant(tenant.tenantId)
+    console.log('🏢 [TenantSelection] handleSelectTenant: setCurrentTenant result:', result)
+
+    if (result.success) {
+      console.log('✅ [TenantSelection] handleSelectTenant: Tenant set successfully, navigating to dashboard')
+      navigate('/dashboard')
+    } else {
+      console.error('❌ [TenantSelection] handleSelectTenant: Failed to set tenant:', result.error)
+    }
   }
 
   const handleCreateTenant = () => {
-    navigate('/onboarding')
+    navigate('/brewery-setup')
   }
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/login')
+    await invalidateSession()
+    navigate('/onboarding')
   }
 
   if (loading) {

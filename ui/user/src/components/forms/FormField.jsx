@@ -36,6 +36,17 @@ export default function FormField({
 
       {children ? (
         children
+      ) : type === 'textarea' ? (
+        <textarea
+          id={name}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          className={baseInputClasses}
+          {...props}
+        />
       ) : (
         <input
           id={name}

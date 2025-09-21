@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useSession } from '../contexts/SessionContext'
+import { authAPI } from '../utils/api'
 import { EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 export default function MagicLinkPage() {
@@ -10,7 +11,7 @@ export default function MagicLinkPage() {
   const [success, setSuccess] = useState(false)
   const [verifyingToken, setVerifyingToken] = useState(false)
 
-  const { sendMagicLink, verifyMagicLink } = useAuth()
+  const { createSessionFromAuth } = useSession()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -26,12 +27,23 @@ export default function MagicLinkPage() {
     setVerifyingToken(true)
     setError('')
 
-    const result = await verifyMagicLink(token)
+    try {
+      const response = await authAPI.verifyMagicLink(token)
 
-    if (result.success) {
-      navigate('/dashboard')
-    } else {
-      setError(result.error)
+      if (response.data.success) {
+        const authData = response.data.data
+        const sessionResult = await createSessionFromAuth(authData)
+
+        if (sessionResult.success) {
+          navigate('/dashboard')
+        } else {
+          setError(sessionResult.error)
+        }
+      } else {
+        setError(response.data.message || 'Failed to verify magic link')
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to verify magic link')
     }
 
     setVerifyingToken(false)
@@ -43,12 +55,17 @@ export default function MagicLinkPage() {
     setError('')
     setSuccess(false)
 
-    const result = await sendMagicLink(email)
+    try {
+      const redirectUrl = `${window.location.origin}/magic-link`
+      const response = await authAPI.sendMagicLink(email, redirectUrl)
 
-    if (result.success) {
-      setSuccess(true)
-    } else {
-      setError(result.error)
+      if (response.data.success) {
+        setSuccess(true)
+      } else {
+        setError(response.data.message || 'Failed to send magic link')
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to send magic link')
     }
 
     setLoading(false)
@@ -157,7 +174,7 @@ export default function MagicLinkPage() {
             <div className="text-center space-y-2">
               <div className="text-sm">
                 <Link
-                  to="/login"
+                  to="/onboarding"
                   className="font-medium text-fermentum-600 hover:text-fermentum-500"
                 >
                   Sign in with password
@@ -166,10 +183,10 @@ export default function MagicLinkPage() {
               <div className="text-sm">
                 Don't have an account?{' '}
                 <Link
-                  to="/register"
+                  to="/onboarding"
                   className="font-medium text-fermentum-600 hover:text-fermentum-500"
                 >
-                  Create account
+                  Sign in with OAuth
                 </Link>
               </div>
             </div>

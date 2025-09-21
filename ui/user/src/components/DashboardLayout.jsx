@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { useTenant } from '../contexts/TenantContext'
+import { useSession } from '../contexts/SessionContext'
+import { PERMISSIONS, filterNavigationByPermissions } from '../utils/permissions'
 import {
   Bars3Icon,
   UserIcon,
@@ -11,42 +11,350 @@ import {
   Cog6ToothIcon,
   ChevronDownIcon,
   BellIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  BeakerIcon,
+  HomeIcon,
+  DocumentTextIcon,
+  ShoppingCartIcon,
+  CubeIcon,
+  WrenchScrewdriverIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  ArchiveBoxIcon,
+  TruckIcon,
+  CalendarDaysIcon,
+  DocumentChartBarIcon
 } from '@heroicons/react/24/outline'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: BuildingOfficeIcon, current: false },
-  { name: 'Inventory', href: '/inventory', icon: BuildingOfficeIcon, current: false },
-  { name: 'Production', href: '/production', icon: BuildingOfficeIcon, current: false },
-  { name: 'Sales', href: '/sales', icon: BuildingOfficeIcon, current: false },
-  { name: 'Reports', href: '/reports', icon: BuildingOfficeIcon, current: false },
-  { name: 'Settings', href: '/brewery-settings', icon: Cog6ToothIcon, current: true },
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: HomeIcon,
+    current: false,
+    description: 'Overview and key metrics',
+    requiredPermissions: [PERMISSIONS.DASHBOARD.VIEW]
+  },
+  {
+    name: 'Production',
+    href: '/production',
+    icon: BeakerIcon,
+    current: false,
+    description: 'Batches, recipes, and brewing operations',
+    requiredPermissions: [PERMISSIONS.PRODUCTION.VIEW],
+    subItems: [
+      {
+        name: 'Production Batches',
+        href: '/production/batches',
+        description: 'Active and completed batches',
+        requiredPermissions: [PERMISSIONS.PRODUCTION.VIEW]
+      },
+      {
+        name: 'Recipes',
+        href: '/production/recipes',
+        description: 'Recipe management and versions',
+        requiredPermissions: [PERMISSIONS.PRODUCTION.MANAGE_RECIPES]
+      },
+      {
+        name: 'Beer Styles',
+        href: '/production/styles',
+        description: 'Style definitions and guidelines',
+        requiredPermissions: [PERMISSIONS.PRODUCTION.MANAGE_STYLES]
+      },
+      {
+        name: 'Batch Steps',
+        href: '/production/steps',
+        description: 'Detailed brewing process tracking',
+        requiredPermissions: [PERMISSIONS.PRODUCTION.EDIT_BATCH_STEPS]
+      }
+    ]
+  },
+  {
+    name: 'Inventory',
+    href: '/inventory',
+    icon: ArchiveBoxIcon,
+    current: false,
+    description: 'Raw materials and finished goods',
+    requiredPermissions: [PERMISSIONS.INVENTORY.VIEW],
+    subItems: [
+      {
+        name: 'Inventory Overview',
+        href: '/inventory',
+        description: 'Current stock levels and alerts',
+        requiredPermissions: [PERMISSIONS.INVENTORY.VIEW]
+      },
+      {
+        name: 'Raw Materials',
+        href: '/inventory/materials',
+        description: 'Grains, hops, yeast, and additives',
+        requiredPermissions: [PERMISSIONS.INVENTORY.VIEW]
+      },
+      {
+        name: 'Packaging',
+        href: '/inventory/packaging',
+        description: 'Bottles, cans, kegs, and labels',
+        requiredPermissions: [PERMISSIONS.INVENTORY.VIEW]
+      },
+      {
+        name: 'Finished Goods',
+        href: '/inventory/finished',
+        description: 'Ready-to-ship products',
+        requiredPermissions: [PERMISSIONS.INVENTORY.VIEW]
+      },
+      {
+        name: 'Inventory Counts',
+        href: '/inventory/counts',
+        description: 'Audit trails and adjustments',
+        requiredPermissions: [PERMISSIONS.INVENTORY.VIEW_COUNTS]
+      }
+    ]
+  },
+  {
+    name: 'Sales & Orders',
+    href: '/orders',
+    icon: ShoppingCartIcon,
+    current: false,
+    description: 'Customer orders and sales management',
+    requiredPermissions: [PERMISSIONS.SALES.VIEW],
+    subItems: [
+      {
+        name: 'Orders',
+        href: '/orders',
+        description: 'Customer orders and fulfillment',
+        requiredPermissions: [PERMISSIONS.SALES.VIEW]
+      },
+      {
+        name: 'Products',
+        href: '/orders/products',
+        description: 'Product catalog and pricing',
+        requiredPermissions: [PERMISSIONS.SALES.MANAGE_PRODUCTS]
+      },
+      {
+        name: 'Customers',
+        href: '/orders/customers',
+        description: 'Customer database and relationships',
+        requiredPermissions: [PERMISSIONS.SALES.MANAGE_CUSTOMERS]
+      },
+      {
+        name: 'Customer Visits',
+        href: '/orders/visits',
+        description: 'Tasting room and tour tracking',
+        requiredPermissions: [PERMISSIONS.SALES.VIEW_CUSTOMER_VISITS]
+      }
+    ]
+  },
+  {
+    name: 'Equipment',
+    href: '/equipment',
+    icon: WrenchScrewdriverIcon,
+    current: false,
+    description: 'Brewery equipment and maintenance',
+    requiredPermissions: [PERMISSIONS.EQUIPMENT.VIEW],
+    subItems: [
+      {
+        name: 'Equipment List',
+        href: '/equipment',
+        description: 'All brewery equipment and assets',
+        requiredPermissions: [PERMISSIONS.EQUIPMENT.VIEW]
+      },
+      {
+        name: 'Maintenance',
+        href: '/equipment/maintenance',
+        description: 'Service records and schedules',
+        requiredPermissions: [PERMISSIONS.EQUIPMENT.SCHEDULE_MAINTENANCE]
+      },
+      {
+        name: 'Service History',
+        href: '/equipment/service',
+        description: 'Maintenance logs and costs',
+        requiredPermissions: [PERMISSIONS.EQUIPMENT.RECORD_SERVICE]
+      }
+    ]
+  },
+  {
+    name: 'Team',
+    href: '/team',
+    icon: UsersIcon,
+    current: false,
+    description: 'Staff management and access control',
+    requiredPermissions: [PERMISSIONS.TEAM.VIEW],
+    subItems: [
+      {
+        name: 'Employees',
+        href: '/team/employees',
+        description: 'Staff directory and roles',
+        requiredPermissions: [PERMISSIONS.TEAM.VIEW]
+      },
+      {
+        name: 'Customer Reps',
+        href: '/team/representatives',
+        description: 'Customer relationship assignments',
+        requiredPermissions: [PERMISSIONS.TEAM.VIEW]
+      },
+      {
+        name: 'Access Control',
+        href: '/team/access',
+        description: 'Permissions and security',
+        requiredPermissions: [PERMISSIONS.TEAM.MANAGE_ACCESS]
+      }
+    ]
+  },
+  {
+    name: 'Reports',
+    href: '/reports',
+    icon: DocumentChartBarIcon,
+    current: false,
+    description: 'Analytics and business intelligence',
+    requiredPermissions: [PERMISSIONS.REPORTS.VIEW],
+    subItems: [
+      {
+        name: 'Production Reports',
+        href: '/reports/production',
+        description: 'Batch efficiency and quality',
+        requiredPermissions: [PERMISSIONS.REPORTS.VIEW_PRODUCTION]
+      },
+      {
+        name: 'Sales Reports',
+        href: '/reports/sales',
+        description: 'Revenue and customer analytics',
+        requiredPermissions: [PERMISSIONS.REPORTS.VIEW_SALES]
+      },
+      {
+        name: 'Inventory Reports',
+        href: '/reports/inventory',
+        description: 'Stock levels and turnover',
+        requiredPermissions: [PERMISSIONS.REPORTS.VIEW_INVENTORY]
+      },
+      {
+        name: 'Financial Reports',
+        href: '/reports/financial',
+        description: 'Cost analysis and profitability',
+        requiredPermissions: [PERMISSIONS.REPORTS.VIEW_FINANCIAL]
+      }
+    ]
+  },
+  {
+    name: 'Settings',
+    href: '/brewery-settings',
+    icon: Cog6ToothIcon,
+    current: true,
+    description: 'Brewery configuration and preferences',
+    requiredPermissions: [PERMISSIONS.SETTINGS.VIEW]
+  }
 ]
 
 const settingsTabs = [
-  { name: 'My Account', href: '/settings/account', icon: UserIcon, current: false },
-  { name: 'Company', href: '/brewery-settings', icon: BuildingOfficeIcon, current: true },
-  { name: 'Team Members', href: '/settings/team', icon: UsersIcon, current: false },
-  { name: 'Billing', href: '/settings/billing', icon: CreditCardIcon, current: false },
+  {
+    name: 'My Account',
+    href: '/profile',
+    icon: UserIcon,
+    current: false,
+    description: 'Personal profile and preferences',
+    requiredPermissions: [] // Available to all authenticated users
+  },
+  {
+    name: 'Brewery Settings',
+    href: '/brewery-settings',
+    icon: BuildingOfficeIcon,
+    current: true,
+    description: 'Brewery information and configuration',
+    requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_BREWERY]
+  },
+  {
+    name: 'Team Management',
+    href: '/settings/team',
+    icon: UsersIcon,
+    current: false,
+    description: 'Employee access and permissions',
+    requiredPermissions: [PERMISSIONS.TEAM.MANAGE_EMPLOYEES, PERMISSIONS.TEAM.MANAGE_ACCESS]
+  },
+  {
+    name: 'Subscription',
+    href: '/settings/billing',
+    icon: CreditCardIcon,
+    current: false,
+    description: 'Billing and subscription management',
+    requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_BILLING]
+  },
+  {
+    name: 'Integrations',
+    href: '/settings/integrations',
+    icon: Cog6ToothIcon,
+    current: false,
+    description: 'Third-party services and APIs',
+    requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_INTEGRATIONS]
+  }
 ]
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
 
-export default function DashboardLayout({ children, title, subtitle, activeTab = 'Company', currentPage = 'Settings' }) {
+export default function DashboardLayout({ children, title, subtitle, activeTab = 'Brewery Settings', currentPage = 'Settings' }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [expandedNavItems, setExpandedNavItems] = useState({})
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const { currentTenant } = useTenant()
+  const { user, currentTenant, invalidateSession } = useSession()
   const dropdownRef = useRef(null)
 
-  // Update navigation current state based on currentPage prop
-  const updatedNavigation = navigation.map(item => ({
-    ...item,
-    current: item.name === currentPage
-  }))
+  const handleProfileClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    setProfileDropdownOpen(false)
+
+    // Try multiple navigation approaches
+    try {
+      navigate('/profile')
+    } catch (error) {
+      // Fallback to window.location
+      window.location.href = '/profile'
+    }
+  }
+
+  // Helper function to check if user has required role (legacy support)
+  const hasRole = (requiredRole) => {
+    if (!requiredRole) return true // No role requirement
+    if (!user?.role) {
+      return false // User has no role
+    }
+    const hasAccess = user.role === requiredRole || user.role === 'fermentum-tenant'
+    return hasAccess // Allow fermentum-tenant to access everything
+  }
+
+  // Handle navigation item expansion
+  const toggleNavExpansion = (itemName) => {
+    setExpandedNavItems(prev => ({
+      ...prev,
+      [itemName]: !prev[itemName]
+    }))
+  }
+
+  // Initialize expanded state for current page
+  useEffect(() => {
+    navigation.forEach(item => {
+      if (item.subItems) {
+        const hasCurrentSubItem = item.subItems.some(sub =>
+          window.location.pathname.startsWith(sub.href)
+        )
+        if (hasCurrentSubItem || item.name === currentPage) {
+          setExpandedNavItems(prev => ({
+            ...prev,
+            [item.name]: true
+          }))
+        }
+      }
+    })
+  }, [currentPage])
+
+  // Update navigation current state and filter by permissions
+  const updatedNavigation = filterNavigationByPermissions(navigation, user)
+    .filter(item => hasRole(item.requiresRole)) // Legacy role support
+    .map(item => ({
+      ...item,
+      current: item.name === currentPage || window.location.pathname.startsWith(item.href)
+    }))
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -61,187 +369,219 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
-  // Test comment to trigger reload
+
+  // Updated dropdown sizing - v2 cache bust
 
   return (
-    <div className="h-screen bg-cyan-50 flex flex-col overflow-hidden">
-      
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-50">
-        <header>
-          <div>
-            <div className="flex justify-between h-[100px] border-b border-teal-700">
-              {/* Upper-Left Fermentum Logo */}
-              <div className="w-64 bg-teal-700 flex items-center space-x-3">
-                <div className="mx-auto">
-                  <img src="/fermentum-logo.png" className="h-[60px]" alt="Fermentum Logo" />
-                </div>
+    <div className="h-screen bg-gray-50 flex">
+
+      {/* Left Sidebar */}
+      <div className="flex flex-col w-64 bg-white shadow-sm border-r border-gray-200">
+
+        {/* Logo Section */}
+        <div className="flex bg-gray-900 items-center justify-center px-4 border-b border-gray-200 h-16">
+          <span className="text-xl font-bold tracking-tight text-white">Fermentum</span>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          {updatedNavigation.map((item) => (
+            <div key={item.name}>
+              {/* Main Navigation Item */}
+              <div className="group">
+                {item.subItems ? (
+                  <button
+                    onClick={() => toggleNavExpansion(item.name)}
+                    className={`w-full group flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ${
+                      item.current
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <item.icon
+                        className={`mr-3 h-5 w-5 ${item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}`}
+                        strokeWidth={1.5}
+                      />
+                      <span className="font-['Inter','-apple-system','system-ui','sans-serif']">{item.name}</span>
+                    </div>
+                    <ChevronDownIcon
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        expandedNavItems[item.name] ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                ) : (
+                  <a
+                    href={item.href}
+                    className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ${
+                      item.current
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <item.icon
+                      className={`mr-3 h-5 w-5 ${item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}`}
+                      strokeWidth={1.5}
+                    />
+                    <span className="font-['Inter','-apple-system','system-ui','sans-serif']">{item.name}</span>
+                  </a>
+                )}
               </div>
 
-              {/* Main Header */}
-              <div className="flex flex-1 items-center justify-end space-x-4 pr-3 bg-teal-200 relative">
-                <div className="flex-1 mx-6 md:text-4xl sm:text-lg text-teal-800 font-semibold tracking-tight">
-                  {currentTenant?.name || 'Brewery Management'}
+              {/* Sub-navigation Items */}
+              {item.subItems && expandedNavItems[item.name] && (
+                <div className="mt-1 ml-8 space-y-1">
+                  {item.subItems.map((subItem) => (
+                    <a
+                      key={subItem.name}
+                      href={subItem.href}
+                      className={`group flex items-center px-3 py-2 text-xs font-medium rounded-md transition-colors duration-150 ${
+                        window.location.pathname === subItem.href
+                          ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-400'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="font-['Menlo','Monaco','monospace']">{subItem.name}</span>
+                    </a>
+                  ))}
                 </div>
+              )}
 
-                {/* Notification Bell */}
-                <button className="flex-none text-teal-900 font-medium p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-70 transition-all duration-200">
-                  <BellIcon className="w-8 h-8" strokeWidth={2} />
-                </button>
+              {/* Settings Sub-navigation (Special Case) */}
+              {item.current && currentPage === 'Settings' && !item.subItems && (
+                <div className="mt-2 ml-8 space-y-1">
+                  {filterNavigationByPermissions(settingsTabs, user).map((tab) => (
+                    <a
+                      key={tab.name}
+                      href={tab.href}
+                      className={`group flex items-center px-3 py-2 text-xs font-medium rounded-md transition-colors duration-150 ${
+                        tab.name === activeTab
+                          ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-400'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <tab.icon className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                      <span className="font-['Menlo','Monaco','monospace']">{tab.name}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
 
-                {/* User Profile Dropdown Menu */}
-                <div className="flex flex-none bg-teal-400 p-3 items-center rounded-full" ref={dropdownRef}>
-                  {/* Circle with Inits. or Profile Pic. */}
-                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
-                    <span className="text-teal-700 text-xs font-bold">
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200">
+          <p className="text-xs text-gray-500 font-['Menlo','Monaco','monospace'] text-center">
+            &copy; 2025 Fermentum
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Top Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-6">
+
+            {/* Page Title */}
+            <div className="flex-1">
+              <h1 className="text-3xl font-semibold tracking-tight text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
+                {currentTenant?.name || 'Current Tenant Not Found'}
+              </h1>
+            </div>
+
+            {/* Header Actions */}
+            <div className="flex items-center space-x-4">
+
+              {/* Notifications */}
+              <button className="relative p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors duration-150">
+                <BellIcon className="h-5 w-5" strokeWidth={1.5} />
+                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+              </button>
+
+              {/* User Profile Dropdown */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-150"
+                >
+                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-white font-['Menlo','Monaco','monospace']">
                       {user?.firstName?.[0]}{user?.lastName?.[0]}
                     </span>
                   </div>
-
-                  {/* Name & E-mail */}
-                  <div className="flex-1 text-teal-900 mx-3 text-left">
-                    <div className="text-xs font-bold">{user?.firstName?.toUpperCase()} {user?.lastName?.toUpperCase()}</div>
-                    <div className="text-xs opacity-80">{user?.email}</div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 font-['Menlo','Monaco','monospace']">
+                      {user?.email}
+                    </p>
                   </div>
+                  <ChevronDownIcon className="h-4 w-4 text-gray-400" strokeWidth={1.5} />
+                </button>
 
-                  {/* Chevron */}
-                  <button
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex-1 focus:outline-none"
-                  >
-                    <ChevronDownIcon className="flex-1 size-5 text-white" strokeWidth={3} />
-                  </button>
-                </div>
+                {/* Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
+                          {user?.firstName} {user?.lastName}
+                        </p>
+                        <p className="text-sm text-gray-500 font-['Menlo','Monaco','monospace'] truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleProfileClick}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-['Menlo','Monaco','monospace']"
+                      >
+                        <UserIcon className="w-4 h-4 mr-3 text-gray-400" strokeWidth={1.5} />
+                        My Profile
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await invalidateSession()
+                          navigate('/')
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-['Menlo','Monaco','monospace']"
+                      >
+                        <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3 text-gray-400" strokeWidth={1.5} />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </header>
-      </div>
 
-      {/* Dropdown Menu - positioned outside header */}
-      {profileDropdownOpen && (
-        <div className="absolute right-3 top-20 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-          <div className="py-1">
-            <div className="px-4 py-2 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
-              <p className="text-sm text-gray-500">{user?.email}</p>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="p-6">
+            {/* Page Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
+                {title}
+              </h1>
+              {subtitle && (
+                <p className="mt-2 text-gray-600 font-['Inter','-apple-system','system-ui','sans-serif']">
+                  {subtitle}
+                </p>
+              )}
             </div>
-            <Link
-              to="/profile"
-              
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-            >
-              <UserIcon className="w-4 h-4 mr-3" strokeWidth={2} />
-              My Profile
-            </Link>
-            <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" strokeWidth={2} />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 h-0">
-
-        {/* Sidebar Navigation */}
-        <nav className="w-64 bg-white border-r border-teal-700 fixed top-[100px] bottom-[0px] overflow-hidden z-40">
-          <div className="h-full">
-            <div className="flex flex-col">
-
-              {/* Nav Buttons */}
-              <div className="flex-1 p-6">
-                <ul className="space-y-2">
-                  {updatedNavigation.map((item) => (
-                    <li key={item.name}>
-                      <a
-                        href={item.href}
-                        className={`w-full items-end flex uppercase text-left px-4 pb-2 pt-6 rounded-lg transition-colors ${
-                          item.current
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-teal-200 text-gray-700 hover:bg-teal-50 hover:text-teal-700'
-                        }`}
-                      >
-                        <span className="flex-1">
-                          {item.name}
-                        </span>
-                        { item.current
-                            ? (
-                              <div className="flex-none text-white size-4 items-end pb-5">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 4.5 15 15m0 0V8.25m0 11.25H8.25" />
-                                </svg>
-                              </div>
-                            )
-                            : (
-                              <div className="flex-none text-teal-700 size-4 items-end pb-5">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
-                                </svg>
-                              </div>
-                            )
-                        }
-                      </a>
-
-                      {/* Sub-navigation for Settings */}
-                      { item.current && currentPage === 'Settings' && settingsTabs.length > 0 && (
-                          <div className="flex flex-col pt-3 justify-center">
-                            {settingsTabs.map((tab) => (
-                              <a
-                                key={tab.name}
-                                href={tab.href}
-                                className={`flex uppercase text-xs text-right border border-white hover:bg-teal-50 p-2 rounded-full ${
-                                  tab.name === activeTab ? 'bg-teal-50 text-teal-700' : ''
-                                }`}
-                              >
-                                <div className="w-[18px] text-teal-900 flex-none ml-1">
-                                  <tab.icon strokeWidth={2} />
-                                </div>
-                                <span className="flex-1 mr-1">{tab.name}</span>
-                              </a>
-                            ))}
-                          </div>
-                        )
-                      }
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Lower-Left Copyright */}
-              <div className="w-64 bg-teal-700 h-[48px] fixed bottom-[0px] flex items-center justify-center">
-                <span className="text-teal-200 text-sm">
-                  &copy; 2025, Fermentum
-                </span>
-              </div>
-
+            {/* Page Content */}
+            <div className="space-y-6">
+              {children}
             </div>
           </div>
-        </nav>
-
-        <div className="flex-1 flex flex-col min-h-0 ml-64">
-
-          {/* Scrollable Main Content */}
-          <main className="flex-1 overflow-y-scroll">
-            <div className="p-8">
-              <div className="max-w-6xl">
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {title}
-                  </h1>
-                  {subtitle && (
-                    <p className="text-gray-600">
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
-                {children}
-              </div>
-            </div>
-          </main>
-
-        </div>
+        </main>
       </div>
     </div>
   )

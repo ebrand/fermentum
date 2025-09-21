@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useSession } from '../contexts/SessionContext'
+import { authAPI } from '../utils/api'
 import DashboardLayout from '../components/DashboardLayout'
 import { FormField, FormButton } from '../components/forms'
 import {
@@ -12,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function UserProfilePage() {
-  const { user, updateUser, updatePassword } = useAuth()
+  const { user, refreshSession } = useSession()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -29,6 +30,11 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [activeTab, setActiveTab] = useState('profile')
+
+  // Refresh user data when component loads to get latest address fields
+  useEffect(() => {
+    refreshSession()
+  }, [])
 
   useEffect(() => {
     if (user) {
@@ -70,7 +76,7 @@ export default function UserProfilePage() {
         zipCode: formData.zipCode
       }
 
-      await updateUser(profileData)
+      await authAPI.updateUser(profileData)
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update profile' })
@@ -102,7 +108,7 @@ export default function UserProfilePage() {
         newPassword: formData.newPassword
       }
 
-      await updatePassword(passwordData)
+      await authAPI.updatePassword(passwordData)
       setMessage({ type: 'success', text: 'Password updated successfully!' })
       setFormData(prev => ({
         ...prev,
@@ -284,58 +290,212 @@ export default function UserProfilePage() {
             )}
 
             {activeTab === 'security' && (
-              <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                  <div className="flex">
-                    <KeyIcon className="w-5 h-5 text-yellow-400 mt-0.5 mr-3" />
-                    <div>
-                      <h3 className="text-sm font-medium text-yellow-800">
-                        Password Security
-                      </h3>
-                      <p className="text-sm text-yellow-700 mt-1">
-                        Choose a strong password with at least 8 characters including letters, numbers, and symbols.
-                      </p>
+              <div className="space-y-6">
+                {/* Authentication Methods Section */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Authentication Methods</h4>
+                  <div className="space-y-4">
+                    {/* OAuth Provider */}
+                    {user?.stytchUserId && (
+                      <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">OAuth Provider</p>
+                          <p className="text-sm text-gray-600">Google or Apple authentication</p>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Connected
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Email/Password */}
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Email & Password</p>
+                        <p className="text-sm text-gray-600">Traditional login method</p>
+                      </div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    </div>
+
+                    {/* Email Verification */}
+                    <div className="flex items-center justify-between py-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Email Verification</p>
+                        <p className="text-sm text-gray-600">{user?.emailVerified ? 'Email address verified' : 'Email verification pending'}</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user?.emailVerified
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {user?.emailVerified ? 'Verified' : 'Pending'}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <FormField
-                  label="Current Password"
-                  name="currentPassword"
-                  type="password"
-                  value={formData.currentPassword}
-                  onChange={handleInputChange}
-                  required
-                  icon={KeyIcon}
-                />
+                {/* Connect Additional Methods (if only password auth) */}
+                {!user?.stytchUserId && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex">
+                      <KeyIcon className="w-5 h-5 text-blue-400 mt-0.5 mr-3" />
+                      <div className="flex-grow">
+                        <h3 className="text-sm font-medium text-blue-800">
+                          Connect Additional Authentication Methods
+                        </h3>
+                        <p className="text-sm text-blue-700 mt-1 mb-3">
+                          Link Google or Apple authentication for faster, more secure login.
+                        </p>
+                        <div className="flex space-x-3">
+                          <button
+                            type="button"
+                            onClick={() => {/* TODO: Implement OAuth linking */}}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            Connect Google
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {/* TODO: Implement OAuth linking */}}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                          >
+                            Connect Apple
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                <FormField
-                  label="New Password"
-                  name="newPassword"
-                  type="password"
-                  value={formData.newPassword}
-                  onChange={handleInputChange}
-                  required
-                  icon={KeyIcon}
-                  helperText="Must be at least 8 characters long"
-                />
+                {/* Password Change Section */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Change Password</h4>
 
-                <FormField
-                  label="Confirm New Password"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required
-                  icon={KeyIcon}
-                />
+                  {user?.stytchUserId ? (
+                    // User has OAuth - show info about password being optional
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-3">
+                        You can sign in using OAuth, but you can also set a password for additional login options.
+                      </p>
+                      <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                        <FormField
+                          label="Current Password (leave blank if none set)"
+                          name="currentPassword"
+                          type="password"
+                          value={formData.currentPassword}
+                          onChange={handleInputChange}
+                          icon={KeyIcon}
+                        />
 
-                <div className="flex justify-end pt-6 border-t border-gray-200">
-                  <FormButton type="submit" loading={loading}>
-                    Update Password
-                  </FormButton>
+                        <FormField
+                          label="New Password"
+                          name="newPassword"
+                          type="password"
+                          value={formData.newPassword}
+                          onChange={handleInputChange}
+                          required
+                          icon={KeyIcon}
+                          helperText="Must be at least 8 characters long"
+                        />
+
+                        <FormField
+                          label="Confirm New Password"
+                          name="confirmPassword"
+                          type="password"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          required
+                          icon={KeyIcon}
+                        />
+
+                        <div className="flex justify-end pt-4">
+                          <FormButton type="submit" loading={loading}>
+                            Set Password
+                          </FormButton>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    // Email/password only user - standard password change
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <div className="flex">
+                          <KeyIcon className="w-5 h-5 text-yellow-400 mt-0.5 mr-3" />
+                          <div>
+                            <h3 className="text-sm font-medium text-yellow-800">
+                              Password Security
+                            </h3>
+                            <p className="text-sm text-yellow-700 mt-1">
+                              Choose a strong password with at least 8 characters including letters, numbers, and symbols.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <FormField
+                        label="Current Password"
+                        name="currentPassword"
+                        type="password"
+                        value={formData.currentPassword}
+                        onChange={handleInputChange}
+                        required
+                        icon={KeyIcon}
+                      />
+
+                      <FormField
+                        label="New Password"
+                        name="newPassword"
+                        type="password"
+                        value={formData.newPassword}
+                        onChange={handleInputChange}
+                        required
+                        icon={KeyIcon}
+                        helperText="Must be at least 8 characters long"
+                      />
+
+                      <FormField
+                        label="Confirm New Password"
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        required
+                        icon={KeyIcon}
+                      />
+
+                      <div className="flex justify-end pt-4">
+                        <FormButton type="submit" loading={loading}>
+                          Update Password
+                        </FormButton>
+                      </div>
+                    </form>
+                  )}
                 </div>
-              </form>
+
+                {/* Security Recommendations */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Security Recommendations</h4>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {user?.stytchUserId ? (
+                      <>
+                        <li>• Keep your OAuth provider account secure with strong passwords</li>
+                        <li>• Enable two-factor authentication on your OAuth provider account</li>
+                        <li>• Consider setting a backup password for additional login options</li>
+                        <li>• Review your OAuth provider's security settings regularly</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>• Use a unique, strong password for your account</li>
+                        <li>• Consider connecting Google or Apple for faster login</li>
+                        <li>• Enable two-factor authentication when available</li>
+                        <li>• Monitor your account for any suspicious activity</li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+              </div>
             )}
           </div>
         </div>

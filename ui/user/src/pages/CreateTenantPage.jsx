@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useTenant } from '../contexts/TenantContext'
+import { useSession } from '../contexts/SessionContext'
+import { tenantAPI } from '../utils/api'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 export default function CreateTenantPage() {
@@ -16,7 +17,7 @@ export default function CreateTenantPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { createTenant } = useTenant()
+  const { refreshSession } = useSession()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -66,16 +67,16 @@ export default function CreateTenantPage() {
     }
 
     try {
-      const result = await createTenant(formData)
+      const result = await tenantAPI.createTenant(formData)
 
-      if (result.success) {
-        // Redirect to tenant selection or dashboard
+      if (result.data) {
+        // Refresh session to get updated tenant list
+        await refreshSession()
+        // Redirect to tenant selection
         navigate('/tenant-selection')
-      } else {
-        setError(result.error || 'Failed to create brewery')
       }
     } catch (error) {
-      setError('An unexpected error occurred')
+      setError(error.response?.data?.message || 'Failed to create brewery')
     }
 
     setLoading(false)

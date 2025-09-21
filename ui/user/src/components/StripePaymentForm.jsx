@@ -75,17 +75,9 @@ export default function StripePaymentForm({
       })
 
       if (pmError) {
-        console.error('🔴 STRIPE ERROR:', pmError)
         throw new Error(pmError.message)
       }
 
-      console.log('✅ STRIPE SUCCESS - Payment Method Created:', {
-        paymentMethodId: paymentMethod.id,
-        cardBrand: paymentMethod.card?.brand,
-        cardLast4: paymentMethod.card?.last4,
-        planType,
-        billingEmail: billingDetails.email
-      })
 
       // Call the success callback with payment method
       await onPaymentSuccess({
@@ -95,7 +87,6 @@ export default function StripePaymentForm({
       })
 
     } catch (err) {
-      console.error('Payment error:', err)
       setError(err.message || 'Payment failed. Please try again.')
       onPaymentError && onPaymentError(err)
     } finally {

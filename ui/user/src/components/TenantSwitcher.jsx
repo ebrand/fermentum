@@ -2,19 +2,19 @@ import React, { useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon, PlusIcon, BuildingOfficeIcon, CheckIcon } from '@heroicons/react/24/outline'
-import { useTenant } from '../contexts/TenantContext'
+import { useSession } from '../contexts/SessionContext'
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
 
 export default function TenantSwitcher() {
-  const { currentTenant, userTenants, selectTenant, hasMultipleTenants } = useTenant()
+  const { currentTenant, userTenants, setCurrentTenant, hasMultipleTenants } = useSession()
   const navigate = useNavigate()
 
-  const handleSelectTenant = (tenant) => {
+  const handleSelectTenant = async (tenant) => {
     if (tenant.tenantId !== currentTenant?.tenantId) {
-      selectTenant(tenant)
+      await setCurrentTenant(tenant.tenantId)
       // Optionally reload the page or update the URL to reflect the new tenant context
       window.location.reload()
     }

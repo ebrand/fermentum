@@ -1,26 +1,35 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useSession } from '../contexts/SessionContext'
+import { authAPI } from '../utils/api'
 
 
 export default function OAuthCallbackPage() {
   const [status, setStatus] = useState('processing')
   const [error, setError] = useState('')
-  const { authenticateOAuth } = useAuth()
+  const { createSessionFromAuth } = useSession()
   const navigate = useNavigate()
 
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
+      console.log('🎯 [OAuthCallback] Starting OAuth callback handling')
+      console.log('🌍 [OAuthCallback] Current URL:', window.location.href)
+
       try {
         // Get the token from URL parameters
         const urlParams = new URLSearchParams(window.location.search)
         const token = urlParams.get('token')
         const tokenType = urlParams.get('stytch_token_type')
 
-
+        console.log('🔗 [OAuthCallback] URL parameters:', {
+          token: token ? 'TOKEN_EXISTS' : 'NO_TOKEN',
+          tokenType,
+          allParams: Object.fromEntries(urlParams.entries())
+        })
 
         if (!token) {
+          console.error('❌ [OAuthCallback] No token found in URL parameters')
           setStatus('error')
           setError('No authentication token received')
           return
@@ -28,38 +37,97 @@ export default function OAuthCallbackPage() {
 
         // Prevent multiple authentication attempts
         if (window.authAttempted) {
+          console.log('🔄 [OAuthCallback] Auth already attempted, skipping')
           return
         }
         window.authAttempted = true
 
-        // Authenticate with the token
+        // Check if this is from onboarding flow
+        const onboardingData = sessionStorage.getItem('onboardingData')
+        console.log('📋 [OAuthCallback] Onboarding data:', onboardingData ? 'EXISTS' : 'NO_DATA')
 
-        const result = await authenticateOAuth(token)
+        if (onboardingData) {
+          console.log('🚀 [OAuthCallback] Onboarding flow - creating account with tenant')
+          // This is an onboarding flow - create account with tenant
+          const data = JSON.parse(onboardingData)
 
+          const accountData = {
+            oAuthToken: token,
+            tenantData: data.tenantData,
+            paymentData: data.paymentData
+          }
 
+          console.log('📡 [OAuthCallback] Calling authAPI.createAccountWithTenant')
+          const result = await authAPI.createAccountWithTenant(accountData)
+          console.log('📡 [OAuthCallback] createAccountWithTenant result:', result)
 
-        if (result.success) {
-          setStatus('success')
-          // Check if user needs onboarding (new user without tenants)
-          setTimeout(() => {
-            navigate('/tenant-selection')
-          }, 1500)
+          if (result.data.success) {
+            console.log('✅ [OAuthCallback] Account created successfully, creating session')
+            // Create session from auth data
+            const sessionResult = await createSessionFromAuth(result.data.data)
+            console.log('📡 [OAuthCallback] createSessionFromAuth result:', sessionResult)
+
+            if (sessionResult.success) {
+              // Clear onboarding data
+              sessionStorage.removeItem('onboardingData')
+              console.log('✅ [OAuthCallback] Session created successfully, redirecting to dashboard')
+
+              setStatus('success')
+              setTimeout(() => {
+                navigate('/dashboard')
+              }, 1500)
+            } else {
+              console.error('❌ [OAuthCallback] Session creation failed:', sessionResult.error)
+              setStatus('error')
+              setError(sessionResult.error || 'Failed to create session')
+            }
+          } else {
+            console.error('❌ [OAuthCallback] Account creation failed:', result.data.message)
+            setStatus('error')
+            setError(result.data.message || 'Failed to create account')
+          }
         } else {
-          setStatus('error')
-          setError(result.error || 'Authentication failed')
+          console.log('🔐 [OAuthCallback] Regular OAuth flow - authenticating with backend')
+          // Regular OAuth flow - authenticate with backend
+          console.log('📡 [OAuthCallback] Calling authAPI.authenticateOAuth')
+          const result = await authAPI.authenticateOAuth(token)
+          console.log('📡 [OAuthCallback] authenticateOAuth result:', result)
+
+          if (result.data.success) {
+            console.log('✅ [OAuthCallback] OAuth authentication successful, creating session')
+            // Create session from auth data
+            const sessionResult = await createSessionFromAuth(result.data.data)
+            console.log('📡 [OAuthCallback] createSessionFromAuth result:', sessionResult)
+
+            if (sessionResult.success) {
+              console.log('✅ [OAuthCallback] Session created successfully, redirecting to tenant selection')
+              setStatus('success')
+              setTimeout(() => {
+                navigate('/tenant-selection')
+              }, 1500)
+            } else {
+              console.error('❌ [OAuthCallback] Session creation failed:', sessionResult.error)
+              setStatus('error')
+              setError(sessionResult.error || 'Failed to create session')
+            }
+          } else {
+            console.error('❌ [OAuthCallback] OAuth authentication failed:', result.data.message)
+            setStatus('error')
+            setError(result.data.message || 'Authentication failed')
+          }
         }
       } catch (error) {
-        console.error('OAuth callback error:', error)
+        console.error('💥 [OAuthCallback] Unexpected error during OAuth callback:', error)
         setStatus('error')
         setError('An unexpected error occurred')
       }
     }
 
     handleOAuthCallback()
-  }, [authenticateOAuth, navigate])
+  }, [createSessionFromAuth, navigate])
 
   const handleRetryLogin = () => {
-    navigate('/login')
+    navigate('/onboarding')
   }
 
   return (

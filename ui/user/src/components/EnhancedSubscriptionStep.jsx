@@ -57,20 +57,15 @@ export default function EnhancedSubscriptionStep({
 
   const handlePaymentSuccess = async (paymentData) => {
     try {
-      console.log('🔧 ENHANCED SUBSCRIPTION STEP - Payment success data received:', paymentData)
-
       const finalPaymentData = {
         ...paymentData,
         billingInfo,
         planType: formData.planType
       }
 
-      console.log('🔧 ENHANCED SUBSCRIPTION STEP - Final payment data being sent to parent:', finalPaymentData)
-
       // Call the parent component's payment completion handler
       await onPaymentComplete(finalPaymentData)
     } catch (error) {
-      console.error('Payment completion error:', error)
       throw error
     }
   }

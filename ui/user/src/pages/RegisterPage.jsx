@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { useSession } from '../contexts/SessionContext'
+import { authAPI } from '../utils/api'
+import { EyeIcon, EyeSlashIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { FormField, FormButton } from '../components/forms'
 
 export default function RegisterPage() {
@@ -14,15 +15,64 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+    noCommonPatterns: false,
+    notSequential: false,
+    notKeyboard: false,
+    mixedCase: false,
+    multipleNumbers: false,
+    multipleSpecial: false,
+  })
 
-  const { register } = useAuth()
+  const { createSessionFromAuth } = useSession()
   const navigate = useNavigate()
 
+  // Enhanced password validation helper for Stytch zxcvbn requirements
+  const validatePassword = (password) => {
+    const validation = {
+      length: password.length >= 12, // Increased from 8 to 12
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    }
+
+    // Additional advanced checks for zxcvbn-like scoring
+    const advancedChecks = {
+      noCommonPatterns: !/(.)\1{2,}/.test(password), // No 3+ repeated characters
+      notSequential: !/(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|123|234|345|456|567|678|789|890)/i.test(password),
+      notKeyboard: !/(?:qwe|wer|ert|rty|tyu|yui|uio|iop|asd|sdf|dfg|fgh|ghj|hjk|jkl|zxc|xcv|cvb|vbn|bnm)/i.test(password),
+      mixedCase: /[A-Z]/.test(password) && /[a-z]/.test(password),
+      multipleNumbers: (password.match(/\d/g) || []).length >= 2,
+      multipleSpecial: (password.match(/[!@#$%^&*(),.?":{}|<>]/g) || []).length >= 2,
+    }
+
+    const allValidation = { ...validation, ...advancedChecks }
+    setPasswordValidation(allValidation)
+    return Object.values(allValidation).every(Boolean)
+  }
+
+  // Calculate password validity based only on the criteria we show to users
+  const requiredCriteria = ['length', 'uppercase', 'lowercase', 'multipleNumbers', 'multipleSpecial', 'noCommonPatterns', 'notSequential', 'notKeyboard']
+  const isPasswordValid = requiredCriteria.every(key => passwordValidation[key])
+
   const handleChange = (e) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     })
+
+    // Validate password in real-time
+    if (name === 'password') {
+      validatePassword(value)
+    }
+
     // Clear error when user starts typing
     if (error) setError('')
   }
@@ -32,12 +82,49 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
 
-    const result = await register(formData)
+    // Validate password strength before submitting
+    if (!isPasswordValid) {
+      setError('Password does not meet security requirements')
+      setLoading(false)
+      return
+    }
 
-    if (result.success) {
-      navigate('/onboarding')
-    } else {
-      setError(result.error)
+    try {
+      // Register user with authAPI
+      const registerResponse = await authAPI.register(formData)
+
+      if (registerResponse.data.success) {
+        // Create session from auth data
+        const authData = registerResponse.data.data
+        const sessionResult = await createSessionFromAuth(authData)
+
+        if (sessionResult.success) {
+          navigate('/onboarding')
+        } else {
+          setError(sessionResult.error)
+        }
+      } else {
+        setError(registerResponse.data.message || 'Registration failed')
+      }
+    } catch (error) {
+      // Provide specific error messages based on the error response
+      let errorMessage = 'Registration failed'
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.response?.status === 400) {
+        // Handle common 400 errors with user-friendly messages
+        const responseText = error.response?.data || error.message || ''
+        if (responseText.includes('duplicate') || responseText.includes('already exists')) {
+          errorMessage = 'An account with this email address already exists. Please try logging in instead.'
+        } else if (responseText.includes('weak') || responseText.includes('password')) {
+          errorMessage = 'Password does not meet security requirements. Please ensure it meets all criteria shown.'
+        } else {
+          errorMessage = 'Registration failed. Please check your information and try again.'
+        }
+      }
+
+      setError(errorMessage)
     }
 
     setLoading(false)
@@ -102,17 +189,11 @@ export default function RegisterPage() {
               autoComplete="email"
             />
 
-            {/* Password field */}
-            <FormField
-              label="Password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Password"
-              required
-              help="Use a strong password with letters, numbers, and special characters"
-              autoComplete="new-password"
-            >
+            {/* Password field with validation */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
               <div className="relative">
                 <input
                   id="password"
@@ -120,8 +201,14 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
-                  className="w-full px-4 py-4 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors pr-12"
-                  placeholder="Password"
+                  className={`w-full px-4 py-4 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition-colors pr-12 ${
+                    formData.password && isPasswordValid
+                      ? 'border-green-300 focus:ring-green-500'
+                      : formData.password
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-200 focus:ring-indigo-500'
+                  }`}
+                  placeholder="Create a strong password"
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -137,7 +224,40 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
-            </FormField>
+
+              {/* Password strength indicators */}
+              {formData.password && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Password requirements:</p>
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    {[
+                      { key: 'length', label: 'At least 12 characters' },
+                      { key: 'uppercase', label: 'One uppercase letter (A-Z)' },
+                      { key: 'lowercase', label: 'One lowercase letter (a-z)' },
+                      { key: 'multipleNumbers', label: 'At least two numbers (0-9)' },
+                      { key: 'multipleSpecial', label: 'At least two special characters (!@#$%^&*)' },
+                      { key: 'noCommonPatterns', label: 'No repeating characters (aaa, 111)' },
+                      { key: 'notSequential', label: 'No sequential patterns (abc, 123)' },
+                      { key: 'notKeyboard', label: 'No keyboard patterns (qwe, asd)' },
+                    ].map(({ key, label }) => (
+                      <div
+                        key={key}
+                        className={`flex items-center space-x-2 ${
+                          passwordValidation[key] ? 'text-green-600' : 'text-gray-400'
+                        }`}
+                      >
+                        {passwordValidation[key] ? (
+                          <CheckIcon className="w-4 h-4" />
+                        ) : (
+                          <XMarkIcon className="w-4 h-4" />
+                        )}
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {error && (
               <div className="rounded-xl bg-red-50 p-4">
@@ -151,7 +271,7 @@ export default function RegisterPage() {
               variant="primary"
               size="md"
               loading={loading}
-              disabled={loading}
+              disabled={loading || (formData.password && !isPasswordValid)}
               className="w-full"
             >
               {loading ? 'Creating account...' : 'Create account'}
@@ -164,7 +284,7 @@ export default function RegisterPage() {
           <p className="text-gray-600">
             Already have an account?{' '}
             <Link
-              to="/login"
+              to="/onboarding"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
               Sign in

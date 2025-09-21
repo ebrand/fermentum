@@ -1,14 +1,12 @@
 import React, { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { useTenant } from '../contexts/TenantContext'
+import { useSession } from '../contexts/SessionContext'
 import DashboardLayout from '../components/DashboardLayout'
 import {
   ChevronDownIcon
 } from '@heroicons/react/24/outline'
 
 export default function BrewerySettingsPage() {
-  const { user } = useAuth()
-  const { currentTenant } = useTenant()
+  const { user, currentTenant } = useSession()
   const [formData, setFormData] = useState({
     breweryName: currentTenant?.tenantName || '',
     description: '',
@@ -34,7 +32,6 @@ export default function BrewerySettingsPage() {
   const handleSubmit = (e) => {
     e.preventDefault()
     // TODO: Implement brewery settings update
-    console.log('Updating brewery settings:', formData)
   }
 
   return (

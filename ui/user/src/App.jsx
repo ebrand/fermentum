@@ -1,26 +1,38 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import { TenantProvider } from './contexts/TenantContext'
-import { useAuth } from './contexts/AuthContext'
+import { SessionProvider } from './contexts/SessionContext'
+import { useSession } from './contexts/SessionContext'
 import LandingPage from './pages/LandingPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import MagicLinkPage from './pages/MagicLinkPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import TenantSelectionPage from './pages/TenantSelectionPage'
 import CreateTenantPage from './pages/CreateTenantPage'
 import OnboardingPage from './pages/OnboardingPage'
+import BrewerySetupPage from './pages/BrewerySetupPage'
 import BrewerySettingsPage from './pages/BrewerySettingsPage'
+import BreweryOperationsPage from './pages/BreweryOperationsPage'
 import ProductionBatchesPage from './pages/ProductionBatchesPage'
 import UserProfilePage from './pages/UserProfilePage'
+import EmployeesPage from './pages/EmployeesPage'
 
 // Protected Route component
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, session } = useSession()
+
+  console.log('🛡️ [ProtectedRoute] Authentication check:', {
+    isAuthenticated,
+    loading,
+    hasSession: !!session,
+    currentPath: window.location.pathname,
+    tokens: {
+      accessToken: localStorage.getItem('accessToken') ? 'EXISTS' : 'MISSING',
+      refreshToken: localStorage.getItem('refreshToken') ? 'EXISTS' : 'MISSING'
+    }
+  })
 
   if (loading) {
+    console.log('⏳ [ProtectedRoute] Still loading, showing spinner')
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-fermentum-600"></div>
@@ -28,12 +40,18 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />
+  if (!isAuthenticated) {
+    console.log('❌ [ProtectedRoute] Not authenticated, redirecting to onboarding')
+    return <Navigate to="/onboarding" />
+  }
+
+  console.log('✅ [ProtectedRoute] Authentication successful, rendering protected content')
+  return children
 }
 
-// Public Route component (redirect to tenant-selection if authenticated)
+// Public Route component (redirect to appropriate page if authenticated)
 function PublicRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useSession()
 
   if (loading) {
     return (
@@ -43,11 +61,43 @@ function PublicRoute({ children }) {
     )
   }
 
-  return !isAuthenticated ? children : <Navigate to="/tenant-selection" />
+  // Redirect authenticated users based on their role
+  if (isAuthenticated && user) {
+    // Users with tenant role go to brewery operations
+    if (user.role === 'tenant') {
+      return <Navigate to="/brewery-operations" />
+    }
+
+    // Other users go to tenant selection
+    return <Navigate to="/tenant-selection" />
+  }
+
+  return children
 }
 
 // Public landing page that doesn't require authentication
 function LandingRoute() {
+  const { isAuthenticated, user, loading } = useSession()
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Redirect authenticated users based on their role
+  if (isAuthenticated && user) {
+    // Users with tenant role go to brewery operations
+    if (user.role === 'tenant') {
+      return <Navigate to="/brewery-operations" />
+    }
+    // Other users go to tenant selection
+    return <Navigate to="/tenant-selection" />
+  }
+
   return <LandingPage />
 }
 
@@ -58,19 +108,11 @@ function AppRoutes() {
       <Route path="/landing" element={<LandingPage />} />
       <Route
         path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/onboarding" replace />}
       />
       <Route
         path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/onboarding" replace />}
       />
       <Route
         path="/magic-link"
@@ -86,9 +128,13 @@ function AppRoutes() {
       />
       <Route
         path="/onboarding"
+        element={<OnboardingPage />}
+      />
+      <Route
+        path="/brewery-setup"
         element={
           <ProtectedRoute>
-            <OnboardingPage />
+            <BrewerySetupPage />
           </ProtectedRoute>
         }
       />
@@ -117,6 +163,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/brewery-operations"
+        element={
+          <ProtectedRoute>
+            <BreweryOperationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/brewery/settings"
         element={
           <ProtectedRoute>
@@ -140,6 +194,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/team/employees"
+        element={
+          <ProtectedRoute>
+            <EmployeesPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }
@@ -147,13 +209,11 @@ function AppRoutes() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <TenantProvider>
-          <div className="min-h-screen bg-gray-50">
-            <AppRoutes />
-          </div>
-        </TenantProvider>
-      </AuthProvider>
+      <SessionProvider>
+        <div className="min-h-screen bg-gray-50">
+          <AppRoutes />
+        </div>
+      </SessionProvider>
     </Router>
   )
 }

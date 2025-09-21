@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { useTenant } from '../contexts/TenantContext'
+import { useSession } from '../contexts/SessionContext'
 import DashboardLayout from '../components/DashboardLayout'
 import {
   BeakerIcon,
@@ -13,8 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function ProductionBatchesPage() {
-  const { user } = useAuth()
-  const { currentTenant } = useTenant()
+  const { user, currentTenant } = useSession()
 
   // Mock batch data
   const batches = [
