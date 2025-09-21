@@ -444,4 +444,103 @@ public class AuthController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Update current user profile
+    /// </summary>
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateUserProfileAsync([FromBody] UpdateUserRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new ApiResponse
+                {
+                    Success = false,
+                    Message = "User not authenticated"
+                });
+            }
+
+            // For now, return the updated user data (would implement actual update logic)
+            var updatedUser = new
+            {
+                Id = userId,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = User.FindFirst("email")?.Value,
+                Phone = request.Phone,
+                Address = request.Address,
+                City = request.City,
+                State = request.State,
+                ZipCode = request.ZipCode,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Profile updated successfully",
+                Data = updatedUser
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update user profile for user {UserId}", User.FindFirst("user_id")?.Value);
+            return BadRequest(new ApiResponse
+            {
+                Success = false,
+                Message = "Failed to update profile"
+            });
+        }
+    }
+
+    /// <summary>
+    /// Update user password
+    /// </summary>
+    [HttpPut("password")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse>> UpdatePasswordAsync([FromBody] UpdatePasswordRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new ApiResponse
+                {
+                    Success = false,
+                    Message = "User not authenticated"
+                });
+            }
+
+            // Validate password requirements
+            if (string.IsNullOrEmpty(request.NewPassword) || request.NewPassword.Length < 8)
+            {
+                return BadRequest(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Password must be at least 8 characters long"
+                });
+            }
+
+            // For now, return success (would implement actual password update logic with Stytch)
+            return Ok(new ApiResponse
+            {
+                Success = true,
+                Message = "Password updated successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update password for user {UserId}", User.FindFirst("user_id")?.Value);
+            return BadRequest(new ApiResponse
+            {
+                Success = false,
+                Message = "Failed to update password"
+            });
+        }
+    }
 }

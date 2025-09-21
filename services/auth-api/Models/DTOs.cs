@@ -70,6 +70,10 @@ public class UpdateUserRequest
     public string? LastName { get; set; }
     public string? DisplayName { get; set; }
     public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? ZipCode { get; set; }
 }
 
 // Tenant DTOs
@@ -217,6 +221,13 @@ public class CreateCustomerRequest
     public string Email { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public PaymentMethodInfo PaymentMethod { get; set; } = new();
+}
+
+
+public class UpdatePasswordRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 
 // API Response wrappers

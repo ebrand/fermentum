@@ -62,27 +62,24 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
     }
   }, [])
   // Test comment to trigger reload
-  let color1 = 'bg-gray-100';
 
   return (
     <div className="h-screen bg-cyan-50 flex flex-col overflow-hidden">
-
+      
       {/* Sticky Header */}
       <div className="sticky top-0 z-50">
         <header>
           <div>
             <div className="flex justify-between h-[100px] border-b border-teal-700">
-
               {/* Upper-Left Fermentum Logo */}
               <div className="w-64 bg-teal-700 flex items-center space-x-3">
                 <div className="mx-auto">
-                  <img src="/fermentum-logo.png" className="h-[60px]" />
+                  <img src="/fermentum-logo.png" className="h-[60px]" alt="Fermentum Logo" />
                 </div>
               </div>
 
               {/* Main Header */}
-              <div className="flex flex-1 items-center justify-end space-x-4 pr-3 bg-teal-200">
-
+              <div className="flex flex-1 items-center justify-end space-x-4 pr-3 bg-teal-200 relative">
                 <div className="flex-1 mx-6 md:text-4xl sm:text-lg text-teal-800 font-semibold tracking-tight">
                   {currentTenant?.name || 'Brewery Management'}
                 </div>
@@ -94,7 +91,6 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
 
                 {/* User Profile Dropdown Menu */}
                 <div className="flex flex-none bg-teal-400 p-3 items-center rounded-full" ref={dropdownRef}>
-
                   {/* Circle with Inits. or Profile Pic. */}
                   <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
                     <span className="text-teal-700 text-xs font-bold">
@@ -115,47 +111,41 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                   >
                     <ChevronDownIcon className="flex-1 size-5 text-white" strokeWidth={3} />
                   </button>
-
                 </div>
-
-                {/* Dropdown Menu */}
-                {profileDropdownOpen && (
-                  <div className="absolute right-3 top-20 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-                    <div className="py-1">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
-                        <p className="text-sm text-gray-500">{user?.email}</p>
-                      </div>
-                      <Link
-                        to="/profile"
-                        onClick={() => {
-                          console.log('Profile link clicked')
-                          setProfileDropdownOpen(false)
-                        }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-                      >
-                        <UserIcon className="w-4 h-4 mr-3" strokeWidth={2} />
-                        My Profile
-                      </Link>
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" strokeWidth={2} />
-                        Sign Out
-                      </button>
-                    </div>
-                  </div>
-                )}
-
               </div>
-
             </div>
           </div>
         </header>
       </div>
 
+      {/* Dropdown Menu - positioned outside header */}
+      {profileDropdownOpen && (
+        <div className="absolute right-3 top-20 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div className="py-1">
+            <div className="px-4 py-2 border-b border-gray-100">
+              <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+              <p className="text-sm text-gray-500">{user?.email}</p>
+            </div>
+            <Link
+              to="/profile"
+              
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+            >
+              <UserIcon className="w-4 h-4 mr-3" strokeWidth={2} />
+              My Profile
+            </Link>
+            <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" strokeWidth={2} />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex flex-1 h-0">
 
-        {/* Fixed Sidebar Navigation */}
+        {/* Sidebar Navigation */}
         <nav className="w-64 bg-white border-r border-teal-700 fixed top-[100px] bottom-[0px] overflow-hidden z-40">
           <div className="h-full">
             <div className="flex flex-col">
@@ -252,7 +242,6 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
           </main>
 
         </div>
-
       </div>
     </div>
   )
