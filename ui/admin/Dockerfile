@@ -1,15 +1,21 @@
+# Build arguments for cache busting
+ARG CACHE_BUSTER=0
+
 # Build stage
 FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Copy package files
+# Cache busting layer (when needed)
+RUN echo "cache_buster=${CACHE_BUSTER}"
+
+# Copy package files first for better layer caching
 COPY ui/admin/package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (this layer is cached unless package.json changes)
+RUN npm ci --only=production --silent
 
-# Copy source code
+# Copy source code (this layer busts when code changes)
 COPY ui/admin/ .
 
 # Build the application

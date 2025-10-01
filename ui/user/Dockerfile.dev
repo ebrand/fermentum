@@ -1,14 +1,20 @@
+# Build arguments for cache busting
+ARG CACHE_BUSTER=0
+
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Cache busting layer (when needed)
+RUN echo "cache_buster=${CACHE_BUSTER}"
+
+# Copy package files first for better layer caching
 COPY ui/user/package*.json ./
 
-# Install dependencies
+# Install dependencies (this layer is cached unless package.json changes)
 RUN npm install
 
-# Copy all app files
+# Copy all app files (this layer busts when code changes)
 COPY ui/user/ .
 
 # Expose the dev server port

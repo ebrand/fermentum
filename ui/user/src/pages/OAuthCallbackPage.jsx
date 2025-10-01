@@ -22,8 +22,11 @@ export default function OAuthCallbackPage() {
         const token = urlParams.get('token')
         const tokenType = urlParams.get('stytch_token_type')
 
+        console.log('🔗 [OAuthCallback] Full URL:', window.location.href)
+        console.log('🔗 [OAuthCallback] Search params:', window.location.search)
         console.log('🔗 [OAuthCallback] URL parameters:', {
-          token: token ? 'TOKEN_EXISTS' : 'NO_TOKEN',
+          token: token ? `TOKEN_EXISTS (${token.length} chars)` : 'NO_TOKEN',
+          tokenPreview: token ? `${token.substring(0, 20)}...` : 'N/A',
           tokenType,
           allParams: Object.fromEntries(urlParams.entries())
         })
@@ -102,9 +105,7 @@ export default function OAuthCallbackPage() {
             if (sessionResult.success) {
               console.log('✅ [OAuthCallback] Session created successfully, redirecting to tenant selection')
               setStatus('success')
-              setTimeout(() => {
-                navigate('/tenant-selection')
-              }, 1500)
+              navigate('/tenant-selection')
             } else {
               console.error('❌ [OAuthCallback] Session creation failed:', sessionResult.error)
               setStatus('error')

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from '../contexts/SessionContext'
+import { useAdvancedNotification } from '../contexts/AdvancedNotificationContext'
 import DashboardLayout from '../components/DashboardLayout'
 import {
   ArrowRightOnRectangleIcon,
@@ -23,6 +24,40 @@ import {
 
 export default function DashboardPage() {
   const { user, invalidateSession, currentTenant, loading: tenantLoading, userTenants } = useSession()
+  const { refreshNotifications, persistentNotifications, isLoading: notificationsLoading } = useAdvancedNotification()
+  const [notificationLoadAttempted, setNotificationLoadAttempted] = useState(false)
+
+  // DASHBOARD-SPECIFIC NOTIFICATION LOADING: 1-second delay after dashboard loads
+  useEffect(() => {
+    const loadDashboardNotifications = async () => {
+      // Check if user has valid authentication tokens and session
+      const hasValidTokens = localStorage.getItem('accessToken') && localStorage.getItem('refreshToken')
+      const hasUserSession = user && currentTenant
+
+      if (hasValidTokens && hasUserSession && !notificationLoadAttempted && !notificationsLoading) {
+        console.log('🏠 [DASHBOARD DEBUG] Loading notifications after 1-second delay...')
+        setNotificationLoadAttempted(true)
+
+        setTimeout(() => {
+          console.log('🔄 [DASHBOARD DEBUG] Triggering delayed notification load')
+          refreshNotifications()
+        }, 1000) // 1-second delay as requested
+      } else {
+        console.log('🏠 [DASHBOARD DEBUG] Dashboard notification load skipped:', {
+          hasValidTokens,
+          hasUserSession,
+          notificationLoadAttempted,
+          notificationCount: persistentNotifications.length,
+          isLoading: notificationsLoading
+        })
+      }
+    }
+
+    // Only run when tenant loading is complete and we're not already loading notifications
+    if (!tenantLoading) {
+      loadDashboardNotifications()
+    }
+  }, [user, currentTenant, tenantLoading, notificationLoadAttempted, notificationsLoading])
 
   // Tenant data is already loaded in SessionContext
 
@@ -90,34 +125,6 @@ export default function DashboardPage() {
       currentPage="Dashboard"
     >
       <div className="w-full">
-
-          {/* Alerts Section */}
-          {dashboardData.alerts.length > 0 && (
-            <div className="mb-6">
-              <div className="space-y-2">
-                {dashboardData.alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`flex items-center p-3 rounded-lg border ${
-                      alert.type === 'warning'
-                        ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                        : 'bg-blue-50 border-blue-200 text-blue-800'
-                    }`}
-                  >
-                    {alert.type === 'warning' ? (
-                      <ExclamationTriangleIcon className="h-5 w-5 mr-3 flex-shrink-0" />
-                    ) : (
-                      <CheckCircleIcon className="h-5 w-5 mr-3 flex-shrink-0" />
-                    )}
-                    <span className="text-sm font-medium">{alert.message}</span>
-                    {alert.urgent && (
-                      <FireIcon className="h-4 w-4 ml-2 text-red-500 flex-shrink-0" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

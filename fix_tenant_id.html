@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fermentum - Fix Phantom Tenant ID</title>
+</head>
+<body>
+    <h1>Fermentum Debug - Fix Phantom Tenant ID</h1>
+    <p>This page will help fix the phantom tenant ID issue.</p>
+
+    <h2>Current localStorage Contents:</h2>
+    <div id="currentStorage"></div>
+
+    <h2>Actions:</h2>
+    <button onclick="showLocalStorage()">Show Current localStorage</button>
+    <button onclick="clearTenantData()">Clear Tenant Data</button>
+    <button onclick="clearAllData()">Clear All localStorage</button>
+    <button onclick="setCorrectTenant()">Set Correct Tenant ID</button>
+
+    <h2>Results:</h2>
+    <div id="results"></div>
+
+    <script>
+        const PHANTOM_TENANT_ID = 'cee20966-d6d5-4024-8b1d-ca0e3ebc33c4';
+        const CORRECT_TENANT_ID = '23f1ad78-d246-4b9f-8d38-d7e91abf4541';
+
+        function showLocalStorage() {
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            document.getElementById('currentStorage').innerHTML = '<pre>' + JSON.stringify(storage, null, 2) + '</pre>';
+        }
+
+        function clearTenantData() {
+            const keysToRemove = [
+                'currentTenantId',
+                'currentBreweryId'
+            ];
+
+            keysToRemove.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    console.log(`Removing ${key}: ${localStorage.getItem(key)}`);
+                    localStorage.removeItem(key);
+                }
+            });
+
+            document.getElementById('results').innerHTML = '<p style="color: green;">✅ Tenant data cleared from localStorage</p>';
+            showLocalStorage();
+        }
+
+        function clearAllData() {
+            const confirm = window.confirm('This will clear ALL localStorage data. Are you sure?');
+            if (confirm) {
+                localStorage.clear();
+                document.getElementById('results').innerHTML = '<p style="color: orange;">🧹 All localStorage data cleared</p>';
+                showLocalStorage();
+            }
+        }
+
+        function setCorrectTenant() {
+            localStorage.setItem('currentTenantId', CORRECT_TENANT_ID);
+            document.getElementById('results').innerHTML =
+                `<p style="color: blue;">🔧 Set currentTenantId to correct value: ${CORRECT_TENANT_ID}</p>`;
+            showLocalStorage();
+        }
+
+        // Show initial state
+        window.onload = function() {
+            showLocalStorage();
+
+            const currentTenantId = localStorage.getItem('currentTenantId');
+            if (currentTenantId === PHANTOM_TENANT_ID) {
+                document.getElementById('results').innerHTML =
+                    '<p style="color: red;">❌ PHANTOM TENANT ID DETECTED: ' + PHANTOM_TENANT_ID + '</p>';
+            }
+        };
+    </script>
+</body>
+</html>

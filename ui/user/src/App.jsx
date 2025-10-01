@@ -1,7 +1,11 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { SessionProvider } from './contexts/SessionContext'
+import AdvancedNotificationProvider from './contexts/AdvancedNotificationContext'
+import { BreweryDrawerProvider } from './contexts/BreweryDrawerContext'
+import { SignalRProvider } from './contexts/SignalRContext'
 import { useSession } from './contexts/SessionContext'
+import AuthenticatedLayout from './components/AuthenticatedLayout'
 import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import MagicLinkPage from './pages/MagicLinkPage'
@@ -15,6 +19,16 @@ import BreweryOperationsPage from './pages/BreweryOperationsPage'
 import ProductionBatchesPage from './pages/ProductionBatchesPage'
 import UserProfilePage from './pages/UserProfilePage'
 import EmployeesPage from './pages/EmployeesPage'
+import PluginsPage from './pages/PluginsPage'
+import QuickBooksCallbackPage from './pages/QuickBooksCallbackPage'
+import FinishedGoodsPage from './pages/FinishedGoodsPage'
+import NotificationTestPage from './pages/NotificationTestPage'
+import AssignmentsPage from './pages/AssignmentsPage'
+import ComboboxExamplePage from './pages/ComboboxExamplePage'
+import RecipesPage from './pages/RecipesPage'
+import RecipeBuilderPage from './pages/RecipeBuilderPage'
+import BeerStylesPage from './pages/BeerStylesPage'
+import StockInventoryPage from './pages/StockInventoryPage'
 
 // Protected Route component
 function ProtectedRoute({ children }) {
@@ -127,6 +141,10 @@ function AppRoutes() {
         element={<OAuthCallbackPage />}
       />
       <Route
+        path="/oauth/quickbooks/callback"
+        element={<QuickBooksCallbackPage />}
+      />
+      <Route
         path="/onboarding"
         element={<OnboardingPage />}
       />
@@ -202,6 +220,86 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings/integrations"
+        element={
+          <ProtectedRoute>
+            <PluginsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventory/finished"
+        element={
+          <ProtectedRoute>
+            <FinishedGoodsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventory/stock"
+        element={
+          <ProtectedRoute>
+            <StockInventoryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/recipes"
+        element={
+          <ProtectedRoute>
+            <RecipesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/recipes/new"
+        element={
+          <ProtectedRoute>
+            <RecipeBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/recipes/:recipeId"
+        element={
+          <ProtectedRoute>
+            <RecipeBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/production/styles"
+        element={
+          <ProtectedRoute>
+            <BeerStylesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/notifications/test"
+        element={
+          <ProtectedRoute>
+            <NotificationTestPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assignments"
+        element={
+          <ProtectedRoute>
+            <AssignmentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/examples/combobox"
+        element={
+          <ProtectedRoute>
+            <ComboboxExamplePage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }
@@ -209,11 +307,19 @@ function AppRoutes() {
 function App() {
   return (
     <Router>
-      <SessionProvider>
-        <div className="min-h-screen bg-gray-50">
-          <AppRoutes />
-        </div>
-      </SessionProvider>
+      <AdvancedNotificationProvider>
+        <SessionProvider>
+          <SignalRProvider>
+            <BreweryDrawerProvider>
+              <AuthenticatedLayout>
+                <div className="min-h-screen bg-gray-50">
+                  <AppRoutes />
+                </div>
+              </AuthenticatedLayout>
+            </BreweryDrawerProvider>
+          </SignalRProvider>
+        </SessionProvider>
+      </AdvancedNotificationProvider>
     </Router>
   )
 }

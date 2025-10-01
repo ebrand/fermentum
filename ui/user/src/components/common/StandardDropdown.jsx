@@ -1,9 +1,8 @@
-import React from 'react'
-import { Menu } from '@headlessui/react'
+import React, { useState } from 'react'
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
 
 /**
- * Standardized dropdown component with consistent 250px width using Headless UI
+ * Standardized dropdown component with consistent 250px width using pure Tailwind CSS
  * @param {Object} props
  * @param {string} props.value - Current selected value
  * @param {Function} props.onChange - Change handler function
@@ -25,6 +24,8 @@ export default function StandardDropdown({
   id,
   ...props
 }) {
+  const [isOpen, setIsOpen] = useState(false)
+
   const selectedOption = options.find(option => option.value === value)
   const displayText = selectedOption ? selectedOption.label : placeholder
 
@@ -39,48 +40,78 @@ export default function StandardDropdown({
       }
       onChange(event)
     }
+    setIsOpen(false)
   }
 
-  const buttonClasses = `w-[250px] inline-flex justify-between items-center gap-x-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 border border-gray-300 hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''} ${className}`
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setIsOpen(!isOpen)
+    } else if (event.key === 'Escape') {
+      setIsOpen(false)
+    }
+  }
+
+  const hasWidthClass = className.includes('w-')
+  const buttonClasses = `${hasWidthClass ? '' : 'w-[250px]'} inline-flex justify-between items-center gap-x-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 border border-gray-300 hover:border-gray-400 focus:ring-2 focus:ring-fermentum-500 focus:border-transparent transition-colors duration-200 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'cursor-pointer'} ${className}`
 
   return (
-    <Menu as="div" className="relative inline-block">
-      <Menu.Button
+    <div className={`relative ${hasWidthClass ? 'block' : 'inline-block'}`}>
+      <button
+        type="button"
         className={buttonClasses}
         disabled={disabled}
         id={id}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onKeyDown={handleKeyDown}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         {...props}
       >
         <span className={`truncate ${!selectedOption ? 'text-gray-500' : ''}`}>
           {displayText}
         </span>
-        <ChevronDownIcon aria-hidden="true" className="h-5 w-5 text-gray-400 flex-shrink-0" />
-      </Menu.Button>
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`h-5 w-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-      <Menu.Items
-        className="absolute left-0 z-10 mt-1 w-[250px] origin-top-left rounded-lg bg-white shadow-lg border border-gray-200 max-h-60 overflow-auto focus:outline-none"
-      >
-        <div className="py-1">
-          {options.map((option, index) => (
-            <Menu.Item key={option.value || index} disabled={option.disabled}>
-              {({ active }) => (
+      {isOpen && (
+        <>
+          {/* Overlay to close dropdown when clicking outside */}
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={() => setIsOpen(false)}
+          />
+
+          <div
+            className={`absolute left-0 z-[9999] mt-1 ${hasWidthClass ? 'w-full' : 'w-[250px]'} origin-top-left rounded-lg bg-white shadow-lg border border-gray-200 max-h-60 overflow-auto focus:outline-none`}
+            role="listbox"
+          >
+            <div className="py-1">
+              {options.map((option, index) => (
                 <button
+                  key={option.value || index}
                   type="button"
                   className={`block w-full px-3 py-2 text-left text-sm transition-colors ${
                     option.disabled
                       ? 'text-gray-400 cursor-not-allowed'
-                      : `text-gray-700 ${active ? 'bg-blue-50 text-blue-900' : ''}`
-                  } ${option.value === value ? 'bg-blue-50 text-blue-900 font-medium' : ''}`}
+                      : `text-gray-700 hover:bg-fermentum-50 hover:text-fermentum-900`
+                  } ${option.value === value ? 'bg-fermentum-50 text-fermentum-900 font-medium' : ''}`}
                   onClick={() => !option.disabled && handleSelect(option.value)}
+                  disabled={option.disabled}
+                  role="option"
+                  aria-selected={option.value === value}
                 >
                   {option.label}
                 </button>
-              )}
-            </Menu.Item>
-          ))}
-        </div>
-      </Menu.Items>
-    </Menu>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 

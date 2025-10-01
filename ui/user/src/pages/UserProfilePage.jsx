@@ -11,6 +11,7 @@ import {
   KeyIcon,
   CameraIcon
 } from '@heroicons/react/24/outline'
+import { UserIdCompact } from '../components/IdDisplay'
 
 export default function UserProfilePage() {
   const { user, refreshSession } = useSession()
@@ -163,9 +164,16 @@ export default function UserProfilePage() {
                 {user?.firstName} {user?.lastName}
               </h2>
               <p className="text-gray-600">{user?.email}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
-              </p>
+              <div className="flex items-center gap-4 mt-1">
+                <p className="text-sm text-gray-500">
+                  Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+                </p>
+                {user?.userId && (
+                  <div className="text-sm text-gray-500">
+                    <UserIdCompact userId={user.userId} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

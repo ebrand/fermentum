@@ -1,0 +1,16 @@
+#!/bin/bash
+echo "Installing Fermentum CA Certificate..."
+echo "Please follow these steps:"
+echo ""
+echo "1. Double-click the fermentum-ca.crt file on your Desktop"
+echo "2. When Keychain Access opens, make sure to:"
+echo "   - Select 'System' keychain (not login)"
+echo "   - Click 'Add'"
+echo "3. Find 'Fermentum Local CA' in the System keychain"
+echo "4. Double-click it and expand 'Trust'"
+echo "5. Set 'When using this certificate' to 'Always Trust'"
+echo "6. Close the dialog (enter password when prompted)"
+echo "7. Restart your browser"
+echo ""
+echo "Opening the certificate file now..."
+open ~/Desktop/fermentum-ca.crt

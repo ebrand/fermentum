@@ -14,11 +14,11 @@ http:
       service: admin-ui-service
       tls: {}
 
-    auth-api:
+    fermentum-api:
       rule: "Host(`api.fermentum.dev`)"
       entryPoints:
         - websecure
-      service: auth-api-service
+      service: fermentum-api-service
       tls: {}
 
   services:
@@ -32,7 +32,7 @@ http:
         servers:
           - url: "http://ui-admin:80"
 
-    auth-api-service:
+    fermentum-api-service:
       loadBalancer:
         servers:
-          - url: "http://api-auth:80"
+          - url: "http://fermentum-api:80"

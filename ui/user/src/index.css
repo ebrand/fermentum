@@ -6,6 +6,11 @@
   html, body, * {
     font-family: 'Menlo', monospace !important;
   }
+
+  /* Reserve space for scrollbar to prevent layout shift */
+  .overflow-y-auto {
+    scrollbar-gutter: stable;
+  }
 }
 
 @layer components {
@@ -19,5 +24,15 @@
 
   .input-field {
     @apply block w-full rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-fermentum-500 focus:outline-none focus:ring-1 focus:ring-fermentum-500;
+  }
+
+  /* Hide scrollbars but maintain scrollability */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
   }
 }

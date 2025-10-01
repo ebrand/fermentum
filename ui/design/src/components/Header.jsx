@@ -41,7 +41,6 @@ function Header() {
               {/* Name & E-mail */}
               <div className="flex-1 text-teal-900 mx-3 text-left">
                 <div className="text-xs font-bold">ERIC BRAND</div>
-                <div className="text-xs opacity-80">eric.d.brand@gmail.com</div>
               </div>
               
               {/* Chevron */}

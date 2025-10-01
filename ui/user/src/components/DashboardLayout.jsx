@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
 import { PERMISSIONS, filterNavigationByPermissions } from '../utils/permissions'
+import { TenantId, TenantIdCompact, UserId, UserIdCompact, BreweryId, BreweryIdCompact } from './IdDisplay'
+import NotificationBell from './NotificationBell'
 import {
   Bars3Icon,
   UserIcon,
@@ -36,6 +38,22 @@ const navigation = [
     requiredPermissions: [PERMISSIONS.DASHBOARD.VIEW]
   },
   {
+    name: 'Assignments',
+    href: '/assignments',
+    icon: ClipboardDocumentListIcon,
+    current: false,
+    description: 'Task and assignment management',
+    requiredPermissions: [PERMISSIONS.DASHBOARD.VIEW]
+  },
+  {
+    name: 'Brewery Operations',
+    href: '/brewery-operations',
+    icon: BuildingOfficeIcon,
+    current: false,
+    description: 'Multi-brewery management and setup',
+    requiredPermissions: [PERMISSIONS.DASHBOARD.VIEW]
+  },
+  {
     name: 'Production',
     href: '/production',
     icon: BeakerIcon,
@@ -46,7 +64,7 @@ const navigation = [
       {
         name: 'Production Batches',
         href: '/production/batches',
-        description: 'Active and completed batches',
+        description: 'Active brewing batches and schedules',
         requiredPermissions: [PERMISSIONS.PRODUCTION.VIEW]
       },
       {
@@ -60,12 +78,6 @@ const navigation = [
         href: '/production/styles',
         description: 'Style definitions and guidelines',
         requiredPermissions: [PERMISSIONS.PRODUCTION.MANAGE_STYLES]
-      },
-      {
-        name: 'Batch Steps',
-        href: '/production/steps',
-        description: 'Detailed brewing process tracking',
-        requiredPermissions: [PERMISSIONS.PRODUCTION.EDIT_BATCH_STEPS]
       }
     ]
   },
@@ -239,52 +251,30 @@ const navigation = [
     icon: Cog6ToothIcon,
     current: true,
     description: 'Brewery configuration and preferences',
-    requiredPermissions: [PERMISSIONS.SETTINGS.VIEW]
+    requiredPermissions: [PERMISSIONS.SETTINGS.VIEW],
+    subItems: [
+      {
+        name: 'My Account',
+        href: '/profile',
+        description: 'Personal profile and preferences',
+        requiredPermissions: [] // Available to all authenticated users
+      },
+      {
+        name: 'Integrations',
+        href: '/settings/integrations',
+        description: 'Third-party services and APIs',
+        requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_INTEGRATIONS]
+      },
+      {
+        name: 'Notifications Test',
+        href: '/settings/notifications/test',
+        description: 'Test notification system functionality',
+        requiredPermissions: [PERMISSIONS.SETTINGS.VIEW]
+      }
+    ]
   }
 ]
 
-const settingsTabs = [
-  {
-    name: 'My Account',
-    href: '/profile',
-    icon: UserIcon,
-    current: false,
-    description: 'Personal profile and preferences',
-    requiredPermissions: [] // Available to all authenticated users
-  },
-  {
-    name: 'Brewery Settings',
-    href: '/brewery-settings',
-    icon: BuildingOfficeIcon,
-    current: true,
-    description: 'Brewery information and configuration',
-    requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_BREWERY]
-  },
-  {
-    name: 'Team Management',
-    href: '/settings/team',
-    icon: UsersIcon,
-    current: false,
-    description: 'Employee access and permissions',
-    requiredPermissions: [PERMISSIONS.TEAM.MANAGE_EMPLOYEES, PERMISSIONS.TEAM.MANAGE_ACCESS]
-  },
-  {
-    name: 'Subscription',
-    href: '/settings/billing',
-    icon: CreditCardIcon,
-    current: false,
-    description: 'Billing and subscription management',
-    requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_BILLING]
-  },
-  {
-    name: 'Integrations',
-    href: '/settings/integrations',
-    icon: Cog6ToothIcon,
-    current: false,
-    description: 'Third-party services and APIs',
-    requiredPermissions: [PERMISSIONS.SETTINGS.MANAGE_INTEGRATIONS]
-  }
-]
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -295,8 +285,20 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [expandedNavItems, setExpandedNavItems] = useState({})
   const navigate = useNavigate()
-  const { user, currentTenant, invalidateSession } = useSession()
+  const { user, currentTenant, currentBrewery, invalidateSession } = useSession()
   const dropdownRef = useRef(null)
+
+  // Debug current brewery value
+  useEffect(() => {
+    console.log('🏗️ [DashboardLayout] currentBrewery value:', {
+      currentBrewery: currentBrewery ? { id: currentBrewery.breweryId, name: currentBrewery.name } : null,
+      isNull: currentBrewery === null,
+      isUndefined: currentBrewery === undefined,
+      breweryName: currentBrewery?.name,
+      shouldShowBrewery: !!currentBrewery?.name,
+      fallbackText: currentBrewery?.name || 'Select a Brewery'
+    })
+  }, [currentBrewery])
 
   const handleProfileClick = (e) => {
     e.preventDefault()
@@ -379,8 +381,8 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
       <div className="flex flex-col w-64 bg-white shadow-sm border-r border-gray-200">
 
         {/* Logo Section */}
-        <div className="flex bg-gray-900 items-center justify-center px-4 border-b border-gray-200 h-16">
-          <span className="text-xl font-bold tracking-tight text-white">Fermentum</span>
+        <div className="bg-fermentum-800 items-center justify-center h-16 overflow-x-hidden overflow-y-hidden">
+          <img src="/fermentum-logo.png" className="mt-[25px]" />
         </div>
 
         {/* Navigation */}
@@ -448,32 +450,13 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                 </div>
               )}
 
-              {/* Settings Sub-navigation (Special Case) */}
-              {item.current && currentPage === 'Settings' && !item.subItems && (
-                <div className="mt-2 ml-8 space-y-1">
-                  {filterNavigationByPermissions(settingsTabs, user).map((tab) => (
-                    <a
-                      key={tab.name}
-                      href={tab.href}
-                      className={`group flex items-center px-3 py-2 text-xs font-medium rounded-md transition-colors duration-150 ${
-                        tab.name === activeTab
-                          ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-400'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent hover:border-gray-300'
-                      }`}
-                    >
-                      <tab.icon className="mr-2 h-4 w-4" strokeWidth={1.5} />
-                      <span className="font-['Menlo','Monaco','monospace']">{tab.name}</span>
-                    </a>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
-          <p className="text-xs text-gray-500 font-['Menlo','Monaco','monospace'] text-center">
+        <div className="p-4 border-t border-gray-200 bg-fermentum-800">
+          <p className="text-sm  text-gray-100 font-['Menlo','Monaco','monospace'] text-center">
             &copy; 2025 Fermentum
           </p>
         </div>
@@ -488,19 +471,28 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
 
             {/* Page Title */}
             <div className="flex-1">
-              <h1 className="text-3xl font-semibold tracking-tight text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
-                {currentTenant?.name || 'Current Tenant Not Found'}
-              </h1>
+              <div className="flex items-center space-x-3" key={`brewery-${currentBrewery?.breweryId || 'none'}`}>
+                <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
+                    {(() => {
+                      const breweryName = currentBrewery?.name || 'Select a Brewery'
+                      console.log('🏗️ [DashboardLayout] Rendering h1 with breweryName:', breweryName, 'currentBrewery:', currentBrewery)
+                      return breweryName
+                    })()}
+                  </h1>
+                  <p className="text-sm text-gray-500 font-['Menlo','Monaco','monospace']">
+                    {currentTenant?.userRole || 'No role assigned'} • Brewery Operations
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Header Actions */}
             <div className="flex items-center space-x-4">
 
-              {/* Notifications */}
-              <button className="relative p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors duration-150">
-                <BellIcon className="h-5 w-5" strokeWidth={1.5} />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-              </button>
+              {/* Advanced Notifications */}
+              <NotificationBell className="transition-colors duration-150" />
 
               {/* User Profile Dropdown */}
               <div className="relative" ref={dropdownRef}>
@@ -526,7 +518,7 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
 
                 {/* Dropdown Menu */}
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-[60]">
                     <div className="py-1">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
@@ -536,6 +528,36 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                           {user?.email}
                         </p>
                       </div>
+
+                      {/* Debug Info Section */}
+                      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <p className="text-xs font-medium text-gray-900 mb-3">Current Session:</p>
+                        <div className="grid grid-cols-12 gap-x-4 gap-y-2 text-xs">
+                          <div></div>
+                          <div className="text-gray-500 col-span-3">Tenant:</div>
+                          <div className="font-mono text-gray-900 col-span-8">
+                            {currentTenant?.tenantId ? (<TenantId tenantId={currentTenant.tenantId} showCopy={true} prefix="" />) : ('None')}
+                          </div>
+
+                          <div></div>
+                          <div className="text-gray-500 col-span-3">Brewery:</div>
+                          <div className="font-mono text-gray-900 col-span-8">
+                            {currentBrewery?.breweryId ? <BreweryId breweryId={currentBrewery.breweryId} showCopy={true} prefix="" /> : 'None'}
+                          </div>
+
+                          <div></div>
+                          <div className="text-gray-500 col-span-3">User:</div>
+                          <div className="font-mono text-gray-900 col-span-8">
+                            {user?.userId ? <UserId userId={user.userId} showCopy={true} prefix="" /> : 'None'}
+                          </div>
+
+                          <div></div>
+                          <div className="text-gray-500 col-span-3">Role:</div>
+                          <div className="font-mono text-gray-900 col-span-8">
+                            {currentTenant?.userRole || 'None'}
+                          </div>
+                        </div>
+                      </div>
                       <button
                         onClick={handleProfileClick}
                         className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-['Menlo','Monaco','monospace']"
@@ -544,11 +566,34 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                         My Profile
                       </button>
                       <button
-                        onClick={async () => {
-                          await invalidateSession()
-                          navigate('/')
+                        onClick={async (e) => {
+                          // Prevent event bubbling to avoid triggering other click handlers
+                          e.preventDefault()
+                          e.stopPropagation()
+
+                          // Close dropdown immediately
+                          setProfileDropdownOpen(false)
+
+                          // Manual logout since invalidateSession is disabled for debugging
+                          console.log('🚪 [DashboardLayout] Signing out user...')
+
+                          // Clear tokens and localStorage
+                          localStorage.removeItem('accessToken')
+                          localStorage.removeItem('refreshToken')
+                          localStorage.removeItem('currentTenantId')
+                          localStorage.removeItem('currentBreweryId')
+
+                          console.log('✅ [DashboardLayout] Local storage cleared, navigating to landing page')
+
+                          // Navigate to landing page (not onboarding)
+                          navigate('/landing')
+
+                          // Force page reload to ensure clean state
+                          setTimeout(() => {
+                            window.location.reload()
+                          }, 100)
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-['Menlo','Monaco','monospace']"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-900 bg-gray-200 hover:bg-fermentum-800 hover:text-gray-100 font-['Menlo','Monaco','monospace']"
                       >
                         <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3 text-gray-400" strokeWidth={1.5} />
                         Sign Out

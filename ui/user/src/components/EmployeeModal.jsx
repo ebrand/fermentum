@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { UserPlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
 import StandardDropdown, { DEPARTMENT_OPTIONS, ACCESS_LEVEL_OPTIONS } from './common/StandardDropdown'
+import Modal, { ModalFooter } from './common/Modal'
 
 const EMPLOYMENT_STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -54,24 +55,26 @@ export default function EmployeeModal({ isOpen, onClose, onSave, employee = null
         emergencyContactRelationship: employee.emergencyContactRelationship || ''
       })
     } else {
+      // Pre-fill with test data for easier testing
+      const today = new Date().toISOString().split('T')[0]
       setFormData({
-        firstName: '',
-        lastName: '',
-        middleName: '',
-        email: '',
-        phone: '',
-        jobTitle: '',
-        department: '',
-        hireDate: '',
+        firstName: 'John',
+        lastName: 'Smith',
+        middleName: 'A',
+        email: 'john.smith@brewery.com',
+        phone: '(555) 123-4567',
+        jobTitle: 'Brewer',
+        department: 'production',
+        hireDate: today,
         employmentStatus: 'active',
-        hourlyRate: '',
+        hourlyRate: '25.00',
         salaryAnnual: '',
         accessLevel: 'standard',
-        certifications: [],
-        securityClearance: '',
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        emergencyContactRelationship: ''
+        certifications: ['Food Safety Certification'],
+        securityClearance: 'Level 1',
+        emergencyContactName: 'Jane Smith',
+        emergencyContactPhone: '(555) 987-6543',
+        emergencyContactRelationship: 'Spouse'
       })
     }
     setErrors({})
@@ -157,26 +160,17 @@ export default function EmployeeModal({ isOpen, onClose, onSave, employee = null
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-w-4xl">
-        <div className="mt-3">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-900">
-              {employee ? 'Edit Employee' : 'Add New Employee'}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              disabled={isLoading}
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={employee ? 'Edit Employee' : 'Add New Employee'}
+      icon={employee ? <PencilSquareIcon /> : <UserPlusIcon />}
+      iconBgColor="bg-blue-100"
+      iconTextColor="text-blue-600"
+      size="xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
             {/* Personal Information */}
             <div>
               <h4 className="text-md font-semibold text-gray-900 mb-4">Personal Information</h4>
@@ -455,27 +449,15 @@ export default function EmployeeModal({ isOpen, onClose, onSave, employee = null
               </div>
             </div>
 
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Saving...' : (employee ? 'Update Employee' : 'Create Employee')}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+        <ModalFooter
+          secondaryAction={onClose}
+          secondaryLabel="Cancel"
+          primaryAction={handleSubmit}
+          primaryLabel={employee ? 'Update Employee' : 'Create Employee'}
+          isPrimaryLoading={isLoading}
+          isPrimaryDisabled={isLoading}
+        />
+      </form>
+    </Modal>
   )
 }

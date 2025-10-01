@@ -1,0 +1,15 @@
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = fermentum.dev
+DNS.2 = *.fermentum.dev
+DNS.3 = admin.fermentum.dev
+DNS.4 = api.fermentum.dev
+DNS.5 = localhost
+DNS.6 = *.localhost
+IP.1 = 127.0.0.1
+IP.2 = ::1

@@ -34,7 +34,7 @@ export default function BrewerySetupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { user } = useSession()
+  const { user, refreshSession } = useSession()
   const navigate = useNavigate()
 
   const handleInputChange = (e) => {
@@ -70,7 +70,19 @@ export default function BrewerySetupPage() {
           await handleSubscriptionSetup()
           break
         case 'complete':
-          navigate('/dashboard')
+          console.log('🎉 [BrewerySetup] Setup complete, refreshing session before navigation')
+
+          // Refresh session data to include the newly created tenant/brewery
+          console.log('🔄 [BrewerySetup] Refreshing session data...')
+          const refreshResult = await refreshSession()
+
+          if (refreshResult.success) {
+            console.log('✅ [BrewerySetup] Session refreshed successfully, navigating to brewery operations')
+            navigate('/brewery-operations')
+          } else {
+            console.error('❌ [BrewerySetup] Failed to refresh session:', refreshResult.error)
+            setError('Unable to load your brewery data. Please try refreshing the page.')
+          }
           break
         default:
           nextStep()
@@ -105,26 +117,44 @@ export default function BrewerySetupPage() {
   const createAccountWithDataDirect = async (dataToUse) => {
     const currentFormData = dataToUse || formData
     try {
-      // Step 1: Create the tenant
+      console.log('🏗️ [BrewerySetup] Starting account creation with data:', {
+        breweryName: currentFormData.breweryName,
+        planType: currentFormData.planType,
+        hasPaymentData: !!currentFormData.paymentData
+      })
+
+      // Step 1: Create the tenant with plan information
+      // Map frontend plan types to backend plan names
+      const planTypeMapping = {
+        'free': 'Starter',
+        'pro': 'Professional',
+        'enterprise': 'Enterprise'
+      }
+      const planType = planTypeMapping[currentFormData.planType] || 'Starter'
+
       const tenantData = {
         name: currentFormData.breweryName,
         description: currentFormData.breweryDescription,
         location: currentFormData.location,
-        website: currentFormData.website
+        website: currentFormData.website,
+        planType: planType
       }
 
+      console.log('🏢 [BrewerySetup] Creating tenant with data:', tenantData)
       const tenantResult = await tenantAPI.createTenant(tenantData)
+      console.log('🏢 [BrewerySetup] Tenant creation result:', tenantResult)
 
       if (!tenantResult.data.success) {
         throw new Error(tenantResult.data.message || 'Failed to create brewery')
       }
 
       const tenant = tenantResult.data.data
+      console.log('✅ [BrewerySetup] Tenant created successfully:', tenant)
 
       // Step 2: Create subscription if payment data exists (paid plan)
-      
       if (currentFormData.paymentData && currentFormData.planType !== 'free') {
-                const subscriptionRequest = {
+        console.log('💳 [BrewerySetup] Creating subscription for paid plan')
+        const subscriptionRequest = {
           paymentMethodId: currentFormData.paymentData.paymentMethodId,
           planType: currentFormData.paymentData.planType,
           billingEmail: currentFormData.paymentData.billingEmail || user?.email,
@@ -132,31 +162,52 @@ export default function BrewerySetupPage() {
           tenantId: tenant.id
         }
 
-                const subscriptionResult = await paymentAPI.createSubscription(subscriptionRequest)
-        
+        console.log('💰 [BrewerySetup] Subscription request:', subscriptionRequest)
+        const subscriptionResult = await paymentAPI.createSubscription(subscriptionRequest)
+        console.log('💰 [BrewerySetup] Subscription result:', subscriptionResult)
+
         if (!subscriptionResult.data.success) {
           throw new Error(subscriptionResult.data.message || 'Failed to create subscription')
         }
 
-              } else {
-              }
+        console.log('✅ [BrewerySetup] Subscription created successfully')
+      } else {
+        console.log('📝 [BrewerySetup] Free plan selected, skipping subscription creation')
+      }
 
       // Success - move to completion
-      nextStep()
-      nextStep() // Skip to complete step
+      console.log('🎯 [BrewerySetup] Account creation complete, advancing to final step')
+
+      // Ensure we're on the correct step before advancing
+      console.log('📍 [BrewerySetup] Current step before advancement:', currentStep)
+
+      // Advance to completion step (step 2)
+      setCurrentStep(SETUP_STEPS.length - 1) // Go directly to completion step
+      console.log('📍 [BrewerySetup] Advanced to completion step')
+
     } catch (error) {
-            throw error
+      console.error('❌ [BrewerySetup] Account creation failed:', error)
+      throw error
     }
   }
 
   const createAccountWithData = async () => {
     try {
-      // Step 1: Create the tenant
+      // Step 1: Create the tenant with plan information
+      // Map frontend plan types to backend plan names
+      const planTypeMapping = {
+        'free': 'Starter',
+        'pro': 'Professional',
+        'enterprise': 'Enterprise'
+      }
+      const planType = planTypeMapping[formData.planType] || 'Starter'
+
       const tenantData = {
         name: formData.breweryName,
         description: formData.breweryDescription,
         location: formData.location,
-        website: formData.website
+        website: formData.website,
+        planType: planType
       }
 
       const tenantResult = await tenantAPI.createTenant(tenantData)
@@ -196,8 +247,11 @@ export default function BrewerySetupPage() {
   }
 
   const handlePaymentComplete = async (paymentData) => {
+    console.log('💳 [BrewerySetup] Payment completed, data:', paymentData)
     try {
-      
+      setLoading(true)
+      setError('')
+
       // Store payment data and update plan type
       const updatedFormData = {
         ...formData,
@@ -205,13 +259,20 @@ export default function BrewerySetupPage() {
         planType: paymentData.planType // Update plan type from payment data
       }
 
-            setFormData(updatedFormData)
+      console.log('📝 [BrewerySetup] Updated form data:', updatedFormData)
+      setFormData(updatedFormData)
 
       // Create account with the updated data directly
+      console.log('🏭 [BrewerySetup] Creating account with tenant and subscription')
       await createAccountWithDataDirect(updatedFormData)
+
+      console.log('✅ [BrewerySetup] Account creation successful!')
+      setLoading(false) // Reset loading state on success
     } catch (error) {
-            setError(error.message || 'Failed to process payment')
-      throw error
+      console.error('❌ [BrewerySetup] Payment completion failed:', error)
+      setError(error.message || 'Failed to process payment')
+      setLoading(false)
+      // Don't throw error - just show it to user
     }
   }
 

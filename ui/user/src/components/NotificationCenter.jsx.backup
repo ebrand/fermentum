@@ -1,0 +1,439 @@
+import React, { useState, useEffect, useMemo, Fragment } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
+import { useAdvancedNotification } from '../contexts/AdvancedNotificationContext'
+import { PRIORITY_LEVELS, NOTIFICATION_CATEGORIES } from '../utils/notificationTypes'
+import {
+  BellIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  ChevronDownIcon,
+  FunnelIcon,
+  CheckIcon,
+  EyeIcon,
+  TrashIcon,
+  ArrowTopRightOnSquareIcon
+} from '@heroicons/react/24/outline'
+
+const NotificationCenter = ({ isOpen, onClose }) => {
+  const notifications = useAdvancedNotification()
+  const [activeTab, setActiveTab] = useState('all')
+  const [sortBy, setSortBy] = useState('priority') // priority, time, category
+  const [filterPriority, setFilterPriority] = useState('all')
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [showRead, setShowRead] = useState(true)
+
+  // Get filtered and sorted notifications
+  const filteredNotifications = useMemo(() => {
+    let filtered = notifications.getNotifications()
+
+    // Apply tab filter
+    switch (activeTab) {
+      case 'unread':
+        filtered = notifications.getNotifications({ unreadOnly: true })
+        break
+      case 'actionRequired':
+        filtered = notifications.getNotifications({ actionRequired: true })
+        break
+      case 'critical':
+        filtered = notifications.getNotifications({ priority: PRIORITY_LEVELS.CRITICAL })
+        break
+      default:
+        filtered = notifications.getNotifications()
+    }
+
+    // Apply priority filter
+    if (filterPriority !== 'all') {
+      filtered = filtered.filter(n => n.priority === filterPriority)
+    }
+
+    // Apply category filter
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(n => n.category === filterCategory)
+    }
+
+    // Apply read status filter
+    if (!showRead) {
+      filtered = filtered.filter(n => !n.isRead)
+    }
+
+    // Sort notifications
+    switch (sortBy) {
+      case 'priority':
+        filtered.sort((a, b) => {
+          const priorityWeights = {
+            [PRIORITY_LEVELS.CRITICAL]: 5,
+            [PRIORITY_LEVELS.HIGH]: 4,
+            [PRIORITY_LEVELS.MEDIUM]: 3,
+            [PRIORITY_LEVELS.LOW]: 2,
+            [PRIORITY_LEVELS.INFO]: 1
+          }
+          return priorityWeights[b.priority] - priorityWeights[a.priority]
+        })
+        break
+      case 'time':
+        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        break
+      case 'category':
+        filtered.sort((a, b) => a.category.localeCompare(b.category))
+        break
+    }
+
+    return filtered
+  }, [notifications, activeTab, sortBy, filterPriority, filterCategory, showRead])
+
+  const getPriorityIcon = (priority) => {
+    switch (priority) {
+      case PRIORITY_LEVELS.CRITICAL:
+        return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
+      case PRIORITY_LEVELS.HIGH:
+        return <ExclamationTriangleIcon className="h-5 w-5 text-orange-500" />
+      case PRIORITY_LEVELS.MEDIUM:
+        return <InformationCircleIcon className="h-5 w-5 text-yellow-500" />
+      case PRIORITY_LEVELS.LOW:
+        return <InformationCircleIcon className="h-5 w-5 text-blue-500" />
+      default:
+        return <InformationCircleIcon className="h-5 w-5 text-gray-500" />
+    }
+  }
+
+  const getPriorityColor = (priority, notification) => {
+    // For broadcast notifications with shared acknowledgment, show critical styling until acknowledged
+    const needsCriticalStyling = notification.sharedAcknowledgment &&
+      !notification.isAcknowledged &&
+      (priority === PRIORITY_LEVELS.CRITICAL || priority === PRIORITY_LEVELS.HIGH)
+
+    if (needsCriticalStyling) {
+      return 'border-l-red-500 bg-red-50 ring-2 ring-red-200'
+    }
+
+    switch (priority) {
+      case PRIORITY_LEVELS.CRITICAL:
+        return 'border-l-red-500 bg-red-50'
+      case PRIORITY_LEVELS.HIGH:
+        return 'border-l-orange-500 bg-orange-50'
+      case PRIORITY_LEVELS.MEDIUM:
+        return 'border-l-yellow-500 bg-yellow-50'
+      case PRIORITY_LEVELS.LOW:
+        return 'border-l-blue-500 bg-blue-50'
+      default:
+        return 'border-l-gray-500 bg-gray-50'
+    }
+  }
+
+  const formatTimeAgo = (date) => {
+    const now = new Date()
+    const diff = now - new Date(date)
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (days > 0) return `${days}d ago`
+    if (hours > 0) return `${hours}h ago`
+    if (minutes > 0) return `${minutes}m ago`
+    return 'Just now'
+  }
+
+  const handleNotificationAction = async (notification, action) => {
+    switch (action) {
+      case 'read':
+        await notifications.markAsRead(notification.id)
+        break
+      case 'acknowledge':
+        await notifications.markAsAcknowledged(notification.id)
+        break
+      case 'remove':
+        await notifications.removeNotification(notification.id)
+        break
+      case 'open':
+        if (notification.actionUrl) {
+          window.location.href = notification.actionUrl
+        }
+        break
+    }
+  }
+
+  const handleMarkAllRead = async () => {
+    const unreadNotifications = filteredNotifications.filter(n => !n.isRead)
+    await Promise.all(unreadNotifications.map(n => notifications.markAsRead(n.id)))
+  }
+
+  const handleClearAll = async () => {
+    if (window.confirm('Are you sure you want to clear all notifications?')) {
+      await notifications.clearAllNotifications()
+    }
+  }
+
+  const handleManualRefresh = async () => {
+    console.log('🔄 Manual refresh triggered')
+    try {
+      await notifications.refreshNotifications()
+      console.log('✅ Manual refresh completed')
+    } catch (error) {
+      console.error('❌ Manual refresh failed:', error)
+    }
+  }
+
+  const counts = notifications.getNotificationCounts()
+
+  return (
+    <Transition.Root show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-[60]" onClose={onClose}>
+        {/* Backdrop */}
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-25" />
+        </Transition.Child>
+
+        {/* Drawer Panel */}
+        <div className="fixed inset-0 overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+              <Transition.Child
+                as={Fragment}
+                enter="transform transition ease-in-out duration-750"
+                enterFrom="translate-x-full"
+                enterTo="translate-x-0"
+                leave="transform transition ease-in-out duration-200"
+                leaveFrom="translate-x-0"
+                leaveTo="translate-x-full"
+              >
+                <Dialog.Panel className="pointer-events-auto relative w-[600px] transform bg-white shadow-xl">
+                  <div className="flex h-full flex-col">
+                    {/* Header */}
+                    <div className="border-b border-gray-200 p-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                          <BellIcon className="h-5 w-5 mr-2" />
+                          Notifications
+                          {counts.unread > 0 && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              {counts.unread}
+                            </span>
+                          )}
+                        </h2>
+                        <button
+                          onClick={onClose}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <XCircleIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Tabs */}
+                      <div className="mt-4 flex space-x-1">
+                        {[
+                          { id: 'all', label: 'All', count: counts.total },
+                          { id: 'unread', label: 'Unread', count: counts.unread },
+                          { id: 'actionRequired', label: 'Action', count: counts.actionRequired },
+                          { id: 'critical', label: 'Critical', count: counts.critical }
+                        ].map(tab => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${activeTab === tab.id
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                              }`}
+                          >
+                            {tab.label}
+                            {tab.count > 0 && (
+                              <span className="ml-1 text-xs">({tab.count})</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Filters and Actions */}
+                    <div className="border-b border-gray-200 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                          >
+                            <option value="priority">Priority</option>
+                            <option value="time">Time</option>
+                            <option value="category">Category</option>
+                          </select>
+
+                          <select
+                            value={filterPriority}
+                            onChange={(e) => setFilterPriority(e.target.value)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                          >
+                            <option value="all">All Priorities</option>
+                            <option value={PRIORITY_LEVELS.CRITICAL}>Critical</option>
+                            <option value={PRIORITY_LEVELS.HIGH}>High</option>
+                            <option value={PRIORITY_LEVELS.MEDIUM}>Medium</option>
+                            <option value={PRIORITY_LEVELS.LOW}>Low</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={handleManualRefresh}
+                            className="text-xs text-green-600 hover:text-green-800 font-medium"
+                            title="Manually refresh notifications"
+                          >
+                            🔄 Refresh
+                          </button>
+                          <button
+                            onClick={handleMarkAllRead}
+                            className="text-xs text-blue-600 hover:text-blue-800"
+                            disabled={counts.unread === 0}
+                          >
+                            Mark All Read
+                          </button>
+                          <button
+                            onClick={handleClearAll}
+                            className="text-xs text-red-600 hover:text-red-800"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notifications List */}
+                    <div className="flex-1 overflow-y-auto">
+                      {filteredNotifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                          <BellIcon className="h-12 w-12 mb-4" />
+                          <p className="text-sm">No notifications</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-200">
+                          {filteredNotifications.map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={`p-4 hover:bg-gray-50 border-l-4 ${getPriorityColor(notification.priority, notification)
+                                } ${!notification.isRead ? 'bg-white' : 'bg-gray-50'}`}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className="flex-shrink-0 pt-1">
+                                  {getPriorityIcon(notification.priority)}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <p className={`text-sm font-medium ${notification.isRead ? 'text-gray-700' : 'text-gray-900'
+                                      }`}>
+                                      {notification.title}
+                                    </p>
+                                    <div className="flex items-center space-x-1">
+                                      {!notification.isRead && (
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                      )}
+                                      <span className="text-xs text-gray-500">
+                                        {formatTimeAgo(notification.createdAt)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <p className={`mt-1 text-sm ${notification.isRead ? 'text-gray-500' : 'text-gray-700'
+                                    }`}>
+                                    {notification.message}
+                                  </p>
+
+                                  {notification.actionRequired && !notification.isAcknowledged && (
+                                    <div className="mt-2 flex items-center text-xs text-orange-600">
+                                      <ClockIcon className="h-4 w-4 mr-1" />
+                                      Action Required
+                                    </div>
+                                  )}
+
+                                  {notification.sharedAcknowledgment && notification.isAcknowledged && (
+                                    <div className="mt-2 flex items-center text-xs text-green-600">
+                                      <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                      Acknowledged by team member
+                                    </div>
+                                  )}
+
+                                  {notification.isBroadcast && (
+                                    <div className="mt-2 flex items-center text-xs text-blue-600">
+                                      <BellIcon className="h-4 w-4 mr-1" />
+                                      Broadcast to {notification.broadcastRoles?.join(', ') || 'team'}
+                                    </div>
+                                  )}
+
+                                  <div className="mt-2 flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {notification.category}
+                                      </span>
+                                      <span className="text-xs text-gray-500">
+                                        {notification.source}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center space-x-1">
+                                      {!notification.isRead && (
+                                        <button
+                                          onClick={() => handleNotificationAction(notification, 'read')}
+                                          className="p-1 text-gray-400 hover:text-gray-600"
+                                          title="Mark as read"
+                                        >
+                                          <EyeIcon className="h-4 w-4" />
+                                        </button>
+                                      )}
+
+                                      {notification.actionRequired && !notification.isAcknowledged && (
+                                        <button
+                                          onClick={() => handleNotificationAction(notification, 'acknowledge')}
+                                          className="p-1 text-gray-400 hover:text-green-600"
+                                          title="Acknowledge"
+                                        >
+                                          <CheckIcon className="h-4 w-4" />
+                                        </button>
+                                      )}
+
+                                      {notification.actionUrl && (
+                                        <button
+                                          onClick={() => handleNotificationAction(notification, 'open')}
+                                          className="p-1 text-gray-400 hover:text-blue-600"
+                                          title="Open"
+                                        >
+                                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                                        </button>
+                                      )}
+
+                                      <button
+                                        onClick={() => handleNotificationAction(notification, 'remove')}
+                                        className="p-1 text-gray-400 hover:text-red-600"
+                                        title="Remove"
+                                      >
+                                        <TrashIcon className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </div>
+      </Dialog>
+    </Transition.Root>
+  )
+}
+
+export default NotificationCenter

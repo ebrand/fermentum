@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
+import EmployeeModal from '../components/EmployeeModal'
 import { useSession } from '../contexts/SessionContext'
 import { hasPermission, PERMISSIONS } from '../utils/permissions'
+import { employeeAPI } from '../utils/api'
 import StandardDropdown, { DEPARTMENT_OPTIONS, STATUS_OPTIONS } from '../components/common/StandardDropdown'
 import {
   PlusIcon,
@@ -19,7 +21,8 @@ import {
   CalendarDaysIcon,
   BanknotesIcon,
   ShieldCheckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
 
 // Mock data based on the database schema
@@ -130,13 +133,172 @@ const accessLevelColors = {
 
 export default function EmployeesPage() {
   const { user } = useSession()
-  const [employees, setEmployees] = useState(mockEmployees)
-  const [filteredEmployees, setFilteredEmployees] = useState(mockEmployees)
+  const [employees, setEmployees] = useState([])
+  const [filteredEmployees, setFilteredEmployees] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortField, setSortField] = useState('last_name')
   const [sortDirection, setSortDirection] = useState('asc')
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Data transformation helpers
+  const transformEmployeeForModal = (employee) => {
+    if (!employee) return null
+    return {
+      id: employee.employee_id, // Keep the ID for updates
+      firstName: employee.first_name,
+      lastName: employee.last_name,
+      middleName: employee.middle_name,
+      email: employee.email,
+      phone: employee.phone,
+      jobTitle: employee.job_title,
+      department: employee.department,
+      hireDate: employee.hire_date,
+      employmentStatus: employee.employment_status,
+      hourlyRate: employee.hourly_rate,
+      salaryAnnual: employee.salary_annual,
+      accessLevel: employee.access_level,
+      certifications: employee.certifications || [],
+      securityClearance: employee.security_clearance,
+      emergencyContactName: employee.emergency_contact_name,
+      emergencyContactPhone: employee.emergency_contact_phone,
+      emergencyContactRelationship: employee.emergency_contact_relationship
+    }
+  }
+
+  const transformEmployeeFromModal = (formData) => {
+    return {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      middleName: formData.middleName,
+      email: formData.email,
+      phone: formData.phone,
+      jobTitle: formData.jobTitle,
+      department: formData.department,
+      hireDate: formData.hireDate,
+      employmentStatus: formData.employmentStatus,
+      hourlyRate: formData.hourlyRate,
+      salaryAnnual: formData.salaryAnnual,
+      accessLevel: formData.accessLevel,
+      certifications: formData.certifications,
+      securityClearance: formData.securityClearance,
+      emergencyContactName: formData.emergencyContactName,
+      emergencyContactPhone: formData.emergencyContactPhone,
+      emergencyContactRelationship: formData.emergencyContactRelationship
+    }
+  }
+
+  // Modal handlers
+  const openCreateModal = () => {
+    setSelectedEmployee(null)
+    setIsModalOpen(true)
+  }
+
+  const openEditModal = (employee) => {
+    setSelectedEmployee(transformEmployeeForModal(employee))
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedEmployee(null)
+  }
+
+  // Load employees from API
+  const loadEmployees = async () => {
+    try {
+      setIsPageLoading(true)
+      setError(null)
+      const response = await employeeAPI.getEmployees()
+      setEmployees(response.data || [])
+    } catch (error) {
+      console.error('Error loading employees:', error)
+      setError('Failed to load employees. Please try again.')
+      // Fall back to mock data for development
+      setEmployees(mockEmployees)
+    } finally {
+      setIsPageLoading(false)
+    }
+  }
+
+  // Load employees on component mount
+  useEffect(() => {
+    loadEmployees()
+  }, [])
+
+  // Employee operations
+  const handleSaveEmployee = async (employeeData) => {
+    setIsLoading(true)
+    const transformedData = transformEmployeeFromModal(employeeData)
+    try {
+
+      if (selectedEmployee && selectedEmployee.id) {
+        // Update existing employee
+        await employeeAPI.updateEmployee(selectedEmployee.id, transformedData)
+      } else {
+        // Create new employee
+        await employeeAPI.createEmployee(transformedData)
+      }
+
+      // Reload employees to get updated data
+      await loadEmployees()
+      closeModal()
+    } catch (error) {
+      console.error('Error saving employee:', error)
+
+      // Fallback to local state update for development
+      if (selectedEmployee && selectedEmployee.id) {
+        const updatedEmployees = employees.map(emp =>
+          emp.employee_id === selectedEmployee.id
+            ? { ...emp, ...transformedData }
+            : emp
+        )
+        setEmployees(updatedEmployees)
+      } else {
+        const newEmployee = {
+          employee_id: employees.length + 1,
+          employee_number: `EMP${String(employees.length + 1).padStart(3, '0')}`,
+          ...transformedData,
+          is_active: true
+        }
+        setEmployees([...employees, newEmployee])
+      }
+      closeModal()
+
+      alert('Employee saved locally. API connection may be unavailable.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteEmployee = async (employeeId) => {
+    if (window.confirm('Are you sure you want to remove this employee?')) {
+      try {
+        await employeeAPI.deleteEmployee(employeeId)
+        // Reload employees to get updated data
+        await loadEmployees()
+      } catch (error) {
+        console.error('Error deleting employee:', error)
+
+        // Fallback to local state update for development
+        setEmployees(employees.filter(emp => emp.employee_id !== employeeId))
+        alert('Employee removed locally. API connection may be unavailable.')
+      }
+    }
+  }
+
+  const handleCreateAssignment = (employee) => {
+    // Navigate to assignments page with the employee pre-selected
+    const assignmentUrl = `/assignments?assignTo=${employee.employee_id}&assigneeName=${encodeURIComponent(`${employee.first_name} ${employee.last_name}`)}`
+    window.location.href = assignmentUrl
+  }
 
   // Permissions
   const canViewEmployees = hasPermission(user, PERMISSIONS.TEAM.VIEW)
@@ -203,12 +365,46 @@ export default function EmployeesPage() {
     )
   }
 
+  if (isPageLoading) {
+    return (
+      <DashboardLayout title="Employees" currentPage="Team">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Loading employees...</h3>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout
       title="Employees"
       subtitle="Manage your brewery team and staff information"
       currentPage="Team"
     >
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={loadEmployees}
+                  className="bg-red-100 px-2 py-1 text-sm rounded-md text-red-800 hover:bg-red-200"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-4">
@@ -244,7 +440,7 @@ export default function EmployeesPage() {
         {/* Add Employee Button */}
         {canManageEmployees && (
           <button
-            onClick={() => alert('Add Employee feature coming soon!')}
+            onClick={openCreateModal}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <UserPlusIcon className="h-5 w-5 mr-2" />
@@ -418,23 +614,30 @@ export default function EmployeesPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
-                        onClick={() => alert('View details feature coming soon!')}
+                        onClick={() => openEditModal(employee)}
                         className="text-blue-600 hover:text-blue-900 p-1 rounded"
                         title="View Details"
                       >
                         <EyeIcon className="h-4 w-4" />
                       </button>
+                      <button
+                        onClick={() => handleCreateAssignment(employee)}
+                        className="text-green-600 hover:text-green-900 p-1 rounded"
+                        title="Create Assignment"
+                      >
+                        <ClipboardDocumentListIcon className="h-4 w-4" />
+                      </button>
                       {canManageEmployees && (
                         <>
                           <button
-                            onClick={() => alert('Edit employee feature coming soon!')}
+                            onClick={() => openEditModal(employee)}
                             className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
                             title="Edit Employee"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => alert('Delete employee feature coming soon!')}
+                            onClick={() => handleDeleteEmployee(employee.employee_id)}
                             className="text-red-600 hover:text-red-900 p-1 rounded"
                             title="Remove Employee"
                           >
@@ -463,6 +666,15 @@ export default function EmployeesPage() {
           </div>
         )}
       </div>
+
+      {/* Employee Modal */}
+      <EmployeeModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onSave={handleSaveEmployee}
+        employee={selectedEmployee}
+        isLoading={isLoading}
+      />
     </DashboardLayout>
   )
 }
