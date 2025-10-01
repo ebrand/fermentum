@@ -1,6 +1,25 @@
 [build]
 builder = "DOCKERFILE"
 
+[build.args]
+ASPNETCORE_ENVIRONMENT = "${{ASPNETCORE_ENVIRONMENT}}"
+ASPNETCORE_URLS = "${{ASPNETCORE_URLS}}"
+ConnectionStrings__DefaultConnection = "${{ConnectionStrings__DefaultConnection}}"
+ConnectionStrings__Redis = "${{ConnectionStrings__Redis}}"
+Stytch__ProjectId = "${{Stytch__ProjectId}}"
+Stytch__ProjectSecret = "${{Stytch__ProjectSecret}}"
+Stytch__PublicToken = "${{Stytch__PublicToken}}"
+Jwt__Issuer = "${{Jwt__Issuer}}"
+Jwt__Audience = "${{Jwt__Audience}}"
+Jwt__SecretKey = "${{Jwt__SecretKey}}"
+Jwt__ExpiryMinutes = "${{Jwt__ExpiryMinutes}}"
+Stripe__SecretKey = "${{Stripe__SecretKey}}"
+Stripe__PublishableKey = "${{Stripe__PublishableKey}}"
+QuickBooksOnline__ClientId = "${{QuickBooksOnline__ClientId}}"
+QuickBooksOnline__ClientSecret = "${{QuickBooksOnline__ClientSecret}}"
+QuickBooksOnline__Environment = "${{QuickBooksOnline__Environment}}"
+QuickBooksOnline__RedirectUri = "${{QuickBooksOnline__RedirectUri}}"
+
 [deploy]
 numReplicas = 1
 sleepApplication = false
@@ -8,16 +27,18 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [variables]
-ASPNETCORE_ENVIRONMENT = "Production"
-ASPNETCORE_URLS = "http://0.0.0.0:${PORT:-8080}"
-
-# These should be set in Railway dashboard as environment variables:
-# ConnectionStrings__DefaultConnection = "Host=...; Database=...; Username=...; Password=..."
-# ConnectionStrings__Redis = "redis.railway.internal:6379,password=YOUR_REDIS_PASSWORD"
-# Note: Railway provides redis://default:password@host:port format, but StackExchange.Redis prefers host:port,password=xxx
-# Stytch__ProjectId = "project-test-..."
-# Stytch__ProjectSecret = "secret-test-..."
-# Stytch__PublicToken = "public-token-test-..."
-# Jwt__SecretKey = "... (minimum 32 characters)"
-# Stripe__SecretKey = "sk_test_..."
-# Stripe__PublishableKey = "pk_test_..."
+# NOTE: All environment variables must be set in Railway dashboard
+# They are referenced in [build.args] using ${{VARIABLE_NAME}} syntax
+# and injected into Docker container via ARG/ENV declarations
+# This bypasses Railway's runtime variable system which was not working
+#
+# Required variables (set these in Railway dashboard):
+#   ASPNETCORE_ENVIRONMENT = "Production"
+#   ASPNETCORE_URLS = "http://+:8080"
+#   ConnectionStrings__DefaultConnection = "Host=postgres.railway.internal;..."
+#   ConnectionStrings__Redis = "redis.railway.internal:6379,password=..."
+#   Stytch__ProjectId, Stytch__ProjectSecret, Stytch__PublicToken
+#   Jwt__Issuer, Jwt__Audience, Jwt__SecretKey, Jwt__ExpiryMinutes
+#   Stripe__SecretKey, Stripe__PublishableKey
+#   QuickBooksOnline__ClientId, QuickBooksOnline__ClientSecret,
+#   QuickBooksOnline__Environment, QuickBooksOnline__RedirectUri

@@ -3,6 +3,25 @@ ARG GIT_SHA=unknown
 ARG BUILD_TIME=unknown
 ARG CACHE_BUSTER=0
 
+# Environment variable build arguments
+ARG ASPNETCORE_ENVIRONMENT=Production
+ARG ASPNETCORE_URLS=http://+:8080
+ARG ConnectionStrings__DefaultConnection
+ARG ConnectionStrings__Redis
+ARG Stytch__ProjectId
+ARG Stytch__ProjectSecret
+ARG Stytch__PublicToken
+ARG Jwt__Issuer
+ARG Jwt__Audience
+ARG Jwt__SecretKey
+ARG Jwt__ExpiryMinutes=60
+ARG Stripe__SecretKey
+ARG Stripe__PublishableKey
+ARG QuickBooksOnline__ClientId
+ARG QuickBooksOnline__ClientSecret
+ARG QuickBooksOnline__Environment
+ARG QuickBooksOnline__RedirectUri
+
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 8080
@@ -47,6 +66,25 @@ LABEL org.fermentum.version=${GIT_SHA}
 # Set environment variables for runtime version info
 ENV APP_VERSION=${GIT_SHA}
 ENV BUILD_TIME=${BUILD_TIME}
+
+# Set runtime environment variables from build arguments
+ENV ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+ENV ASPNETCORE_URLS=${ASPNETCORE_URLS}
+ENV ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+ENV ConnectionStrings__Redis=${ConnectionStrings__Redis}
+ENV Stytch__ProjectId=${Stytch__ProjectId}
+ENV Stytch__ProjectSecret=${Stytch__ProjectSecret}
+ENV Stytch__PublicToken=${Stytch__PublicToken}
+ENV Jwt__Issuer=${Jwt__Issuer}
+ENV Jwt__Audience=${Jwt__Audience}
+ENV Jwt__SecretKey=${Jwt__SecretKey}
+ENV Jwt__ExpiryMinutes=${Jwt__ExpiryMinutes}
+ENV Stripe__SecretKey=${Stripe__SecretKey}
+ENV Stripe__PublishableKey=${Stripe__PublishableKey}
+ENV QuickBooksOnline__ClientId=${QuickBooksOnline__ClientId}
+ENV QuickBooksOnline__ClientSecret=${QuickBooksOnline__ClientSecret}
+ENV QuickBooksOnline__Environment=${QuickBooksOnline__Environment}
+ENV QuickBooksOnline__RedirectUri=${QuickBooksOnline__RedirectUri}
 
 COPY --from=publish /app/publish .
 
