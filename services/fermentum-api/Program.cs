@@ -67,6 +67,28 @@ builder.Services.AddHttpContextAccessor();
 // Tenant Context Services for RLS
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 
+// Railway/Heroku PostgreSQL URI to ADO.NET Connection String Conversion
+// Railway provides DATABASE_URL in URI format: postgresql://user:pass@host:port/db
+// But Npgsql expects ADO.NET format: Host=host;Port=port;Database=db;Username=user;Password=pass
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgresql://"))
+{
+    try
+    {
+        var uri = new Uri(connectionString);
+        var convertedConnectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]}";
+
+        // Override the configuration with the converted connection string
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = convertedConnectionString;
+
+        tempLogger.LogInformation("Converted Railway PostgreSQL URI to ADO.NET connection string format");
+    }
+    catch (Exception ex)
+    {
+        tempLogger.LogError(ex, "Failed to convert PostgreSQL URI to connection string format");
+    }
+}
+
 // Database Configuration with RLS interceptor
 builder.Services.AddScoped<TenantRlsInterceptor>();
 builder.Services.AddDbContext<AuthDbContext>((serviceProvider, options) =>
