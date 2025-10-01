@@ -14,13 +14,16 @@ services:
       - "443:443"
     volumes:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./infrastructure/ssl:/etc/nginx/ssl:ro
+      - ./infrastructure/data/certbot:/var/www/certbot:ro
     depends_on:
       - fermentum-api
       - ui-user
       - ui-admin
     networks:
       - fermentum
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
 
   # Database
   infra-postgres:

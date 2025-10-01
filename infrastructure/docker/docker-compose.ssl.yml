@@ -1,0 +1,25 @@
+# Docker Compose override for production SSL with Let's Encrypt
+# Usage: docker-compose -f docker-compose.yml -f infrastructure/docker/docker-compose.ssl.yml up -d
+
+version: '3.8'
+
+services:
+  # Certbot for Let's Encrypt certificate management
+  certbot:
+    image: certbot/certbot:latest
+    container_name: fermentum-certbot
+    volumes:
+      - ./infrastructure/data/letsencrypt:/etc/letsencrypt
+      - ./infrastructure/data/certbot:/var/www/certbot
+      - ./infrastructure/ssl:/etc/nginx/ssl
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --webroot --webroot-path=/var/www/certbot; sleep 12h & wait $${!}; done;'"
+    networks:
+      - fermentum
+
+  # Update nginx to include certbot webroot
+  nginx:
+    volumes:
+      - ./infrastructure/data/certbot:/var/www/certbot:ro
+      - ./infrastructure/data/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - certbot

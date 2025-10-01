@@ -52,6 +52,42 @@ ssl-install: ssl ## Generate and install SSL certificates to system trust store 
 	@sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infrastructure/ssl/fermentum-ca.crt
 	@echo "CA certificate installed successfully"
 
+ssl-production: ## Set up Let's Encrypt SSL for production (www.fermentum.dev)
+	@echo "🔒 Setting up Let's Encrypt SSL for production..."
+	@./infrastructure/scripts/init-ssl-dirs.sh
+	@docker-compose -f docker-compose.yml -f infrastructure/docker/docker-compose.ssl.yml up -d
+	@echo "⏳ Waiting for services to start..."
+	@sleep 10
+	@echo "📝 To obtain certificates, run:"
+	@echo "   make ssl-obtain"
+
+ssl-obtain: ## Obtain Let's Encrypt certificates (run after ssl-production)
+	@echo "🔑 Obtaining Let's Encrypt certificates..."
+	@docker exec fermentum-certbot certbot certonly \
+		--webroot \
+		--webroot-path=/var/www/certbot \
+		--email eric.d.brand@gmail.com \
+		--agree-tos \
+		--no-eff-email \
+		--domains www.fermentum.dev,fermentum.dev,admin.fermentum.dev,api.fermentum.dev \
+		--non-interactive \
+		--keep-until-expiring
+	@echo "📋 Copying certificates to nginx..."
+	@docker exec fermentum-certbot sh -c "cp /etc/letsencrypt/live/www.fermentum.dev/fullchain.pem /etc/nginx/ssl/www.fermentum.dev/ && cp /etc/letsencrypt/live/www.fermentum.dev/privkey.pem /etc/nginx/ssl/www.fermentum.dev/"
+	@echo "🔄 Reloading nginx..."
+	@docker exec fermentum-nginx nginx -s reload
+	@echo "✅ SSL certificates obtained and applied!"
+
+ssl-renew: ## Manually renew Let's Encrypt certificates
+	@echo "🔄 Renewing certificates..."
+	@docker exec fermentum-certbot certbot renew --quiet
+	@docker exec fermentum-nginx nginx -s reload
+	@echo "✅ Certificates renewed and nginx reloaded"
+
+ssl-status: ## Check SSL certificate status
+	@echo "📋 Certificate status:"
+	@docker exec fermentum-certbot certbot certificates
+
 status: ## Show status of all services
 	@docker-compose ps
 

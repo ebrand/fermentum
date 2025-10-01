@@ -148,8 +148,7 @@ railway up --service ui-admin --detach ./ui/admin
 Add CNAME records in your domain provider:
 ```
 api.fermentum.com    CNAME    fermentum-api.railway.app
-app.fermentum.com    CNAME    ui-user.railway.app
-admin.fermentum.com  CNAME    ui-admin.railway.app
+www.fermentum.com    CNAME    ui-user.railway.app
 ```
 
 ### 6. Environment Variables Reference
