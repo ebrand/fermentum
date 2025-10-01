@@ -11,12 +11,13 @@ restartPolicyMaxRetries = 10
 ASPNETCORE_ENVIRONMENT = "Production"
 ASPNETCORE_URLS = "http://0.0.0.0:${PORT:-8080}"
 
-# These should be set in Railway dashboard as environment variables
+# These should be set in Railway dashboard as environment variables:
 # ConnectionStrings__DefaultConnection = "Host=...; Database=...; Username=...; Password=..."
-# ConnectionStrings__Redis = "..."
-# Stytch__ProjectId = "project-test-602a83cb-068f-4dd4-a473-0bb708335ee6"
-# Stytch__ProjectSecret = "..."
-# Stytch__PublicToken = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
+# ConnectionStrings__Redis = "redis.railway.internal:6379,password=YOUR_REDIS_PASSWORD"
+# Note: Railway provides redis://default:password@host:port format, but StackExchange.Redis prefers host:port,password=xxx
+# Stytch__ProjectId = "project-test-..."
+# Stytch__ProjectSecret = "secret-test-..."
+# Stytch__PublicToken = "public-token-test-..."
 # Jwt__SecretKey = "... (minimum 32 characters)"
 # Stripe__SecretKey = "sk_test_..."
 # Stripe__PublishableKey = "pk_test_..."

@@ -58,6 +58,17 @@ foreach (var controller in controllerTypes)
     tempLogger.LogInformation("Found controller: {ControllerType}", controller.FullName);
 }
 tempLogger.LogInformation("=== END CONTROLLER DISCOVERY ===");
+
+// Debug: Log Stytch configuration
+tempLogger.LogInformation("=== STYTCH CONFIGURATION ===");
+var stytchProjectId = builder.Configuration["Stytch:ProjectId"];
+var stytchPublicToken = builder.Configuration["Stytch:PublicToken"];
+var stytchEnvironment = builder.Configuration["Stytch:Environment"];
+tempLogger.LogInformation("Stytch ProjectId: {ProjectId}", string.IsNullOrEmpty(stytchProjectId) ? "NOT SET" : stytchProjectId);
+tempLogger.LogInformation("Stytch PublicToken: {PublicToken}", string.IsNullOrEmpty(stytchPublicToken) ? "NOT SET" : stytchPublicToken);
+tempLogger.LogInformation("Stytch Environment: {Environment}", string.IsNullOrEmpty(stytchEnvironment) ? "NOT SET" : stytchEnvironment);
+tempLogger.LogInformation("=== END STYTCH CONFIGURATION ===");
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
