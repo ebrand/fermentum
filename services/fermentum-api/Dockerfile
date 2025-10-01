@@ -35,21 +35,21 @@ WORKDIR /src
 RUN echo "cache_buster=${CACHE_BUSTER}"
 
 # Copy solution and project files first for better layer caching
-COPY ["Fermentum.Auth.csproj", "./"]
-RUN dotnet restore "Fermentum.Auth.csproj"
+COPY ["FermentumApi.csproj", "./"]
+RUN dotnet restore "FermentumApi.csproj"
 
 # Copy source code (this layer busts when code changes)
 COPY . .
 WORKDIR "/src"
 
 # Build with version info
-RUN dotnet build "Fermentum.Auth.csproj" -c Release -o /app/build \
+RUN dotnet build "FermentumApi.csproj" -c Release -o /app/build \
     -p:AssemblyVersion=1.0.0.0 \
     -p:FileVersion=1.0.0.0 \
     -p:InformationalVersion=${GIT_SHA}
 
 FROM build AS publish
-RUN dotnet publish "Fermentum.Auth.csproj" -c Release -o /app/publish \
+RUN dotnet publish "FermentumApi.csproj" -c Release -o /app/publish \
     /p:UseAppHost=false \
     -p:AssemblyVersion=1.0.0.0 \
     -p:FileVersion=1.0.0.0 \
@@ -96,4 +96,4 @@ COPY --from=publish /app/publish .
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-ENTRYPOINT ["dotnet", "Fermentum.Auth.dll"]
+ENTRYPOINT ["dotnet", "FermentumApi.dll"]
