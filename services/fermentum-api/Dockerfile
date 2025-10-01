@@ -67,24 +67,28 @@ LABEL org.fermentum.version=${GIT_SHA}
 ENV APP_VERSION=${GIT_SHA}
 ENV BUILD_TIME=${BUILD_TIME}
 
-# Set runtime environment variables from build arguments
-ENV ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
-ENV ASPNETCORE_URLS=${ASPNETCORE_URLS}
-ENV ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
-ENV ConnectionStrings__Redis=${ConnectionStrings__Redis}
-ENV Stytch__ProjectId=${Stytch__ProjectId}
-ENV Stytch__ProjectSecret=${Stytch__ProjectSecret}
-ENV Stytch__PublicToken=${Stytch__PublicToken}
-ENV Jwt__Issuer=${Jwt__Issuer}
-ENV Jwt__Audience=${Jwt__Audience}
-ENV Jwt__SecretKey=${Jwt__SecretKey}
-ENV Jwt__ExpiryMinutes=${Jwt__ExpiryMinutes}
-ENV Stripe__SecretKey=${Stripe__SecretKey}
-ENV Stripe__PublishableKey=${Stripe__PublishableKey}
-ENV QuickBooksOnline__ClientId=${QuickBooksOnline__ClientId}
-ENV QuickBooksOnline__ClientSecret=${QuickBooksOnline__ClientSecret}
-ENV QuickBooksOnline__Environment=${QuickBooksOnline__Environment}
-ENV QuickBooksOnline__RedirectUri=${QuickBooksOnline__RedirectUri}
+# Set runtime environment variables
+# CRITICAL: Railway's variable system is completely broken - it cannot pass variables
+# through runtime injection, ${{}} substitution, or Docker ARG mechanism.
+# As a workaround, we hardcode all values directly here.
+# NOTE: These are test/development credentials only.
+ENV ASPNETCORE_ENVIRONMENT="Production"
+ENV ASPNETCORE_URLS="http://+:8080"
+ENV ConnectionStrings__DefaultConnection="Host=postgres.railway.internal;Port=5432;Database=railway;Username=postgres;Password=WzDKXNheaetFpzbsEhMoCpzWASzyPFtH"
+ENV ConnectionStrings__Redis="redis.railway.internal:6379,password=lSmKXiFBTOIsbtgwvHudKCNIAJBoNACn"
+ENV Stytch__ProjectId="project-test-602a83cb-068f-4dd4-a473-0bb708335ee6"
+ENV Stytch__ProjectSecret="secret-test-orObSrhvLvkqC2IMClzRxug7FICBkkqKH0g="
+ENV Stytch__PublicToken="public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
+ENV Jwt__Issuer="https://auth.fermentum.dev"
+ENV Jwt__Audience="https://fermentum.dev"
+ENV Jwt__SecretKey="3hk4bie7ftgw34iub4qiyrg863trf9283hruiq3griyfqgoirhu3qrq"
+ENV Jwt__ExpiryMinutes="60"
+ENV Stripe__SecretKey="sk_test_51S9841S4Vkg3juZcdlrb3ir0DUZgYKQQTJkmt0Vj9aGWaQq2Me6VXqCBhgWGm8IKVcNQ4JwNQyu8LBmfDIR35AJV00nfVOyx8t"
+ENV Stripe__PublishableKey="pk_test_51S9841S4Vkg3juZc0uHOaNnNBJrFfyhetvmmIoRbCEdxnnwKnCZTtQAMg9Rq38kLVq71TqSt1d0TtXBTOOw1qfOw00vYAcStzo"
+ENV QuickBooksOnline__ClientId="ABz2UqE4t2pzruG4EM4bw4mSeKH5NGBB6kz0DEV1UPRbBTSHB8"
+ENV QuickBooksOnline__ClientSecret="RhrAUSQ4MEPUJoYjBwgjEVM5Pb45mloPoBQZqGKU"
+ENV QuickBooksOnline__Environment="sandbox"
+ENV QuickBooksOnline__RedirectUri="https://fermentum-api-production.up.railway.app/api/quickbooks/callback"
 
 COPY --from=publish /app/publish .
 
