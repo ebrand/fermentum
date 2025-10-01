@@ -21,8 +21,10 @@ RUN rm -rf node_modules package-lock.json
 RUN npm install
 
 # Set environment variables for Vite build
-ENV VITE_API_URL=${VITE_API_URL}
-ENV VITE_STYTCH_PUBLIC_TOKEN=${VITE_STYTCH_PUBLIC_TOKEN}
+# CRITICAL: These values MUST be set at build time for Vite to embed them
+# Railway's variable system isn't passing them correctly, so hardcode for now
+ENV VITE_API_URL="https://api.fermentum.dev/api"
+ENV VITE_STYTCH_PUBLIC_TOKEN="public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
 
 # Build the application
 RUN npm run build
