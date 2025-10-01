@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock API Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { margin: 10px; padding: 10px; }
+        #result { background: #f0f0f0; padding: 10px; margin-top: 20px; white-space: pre-wrap; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Stock API Test</h1>
+
+    <input type="text" id="jwt" placeholder="Paste JWT token here" style="width: 500px;" />
+
+    <div>
+        <button onclick="testGetStock()">GET Stock (take=3)</button>
+        <button onclick="testCreateStock()">POST Create Stock</button>
+        <button onclick="testUpdateStock()">PUT Update Stock</button>
+        <button onclick="testDeleteStock()">DELETE Stock</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const baseUrl = 'http://localhost:5000/api/stock';
+
+        function getHeaders() {
+            const jwt = document.getElementById('jwt').value;
+            return {
+                'Authorization': `Bearer ${jwt}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        function showResult(data, isError = false) {
+            const result = document.getElementById('result');
+            result.className = isError ? 'error' : 'success';
+            result.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testGetStock() {
+            try {
+                const response = await fetch(`${baseUrl}?take=3`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                showResult({ status: response.status, data });
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function testCreateStock() {
+            const stock = {
+                sku: `TEST-${Date.now()}`,
+                name: 'Test Stock Item',
+                category: 'Grain',
+                description: 'Test grain for API testing',
+                unitOfMeasure: 'lbs',
+                unitCost: 2.50,
+                currency: 'USD',
+                isActive: true
+            };
+
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(stock)
+                });
+                const data = await response.json();
+                showResult({ status: response.status, data });
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function testUpdateStock() {
+            const stockId = prompt('Enter Stock ID to update:');
+            if (!stockId) return;
+
+            const stock = {
+                name: 'Updated Stock Name',
+                unitCost: 3.75
+            };
+
+            try {
+                const response = await fetch(`${baseUrl}/${stockId}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(stock)
+                });
+                const data = await response.json();
+                showResult({ status: response.status, data });
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function testDeleteStock() {
+            const stockId = prompt('Enter Stock ID to delete:');
+            if (!stockId) return;
+
+            if (!confirm(`Delete stock ${stockId}?`)) return;
+
+            try {
+                const response = await fetch(`${baseUrl}/${stockId}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                showResult({ status: response.status, data });
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        // Auto-fill JWT if available in localStorage
+        window.onload = function() {
+            const storedJwt = localStorage.getItem('test_jwt');
+            if (storedJwt) {
+                document.getElementById('jwt').value = storedJwt;
+            }
+
+            // Save JWT to localStorage when changed
+            document.getElementById('jwt').addEventListener('change', function() {
+                localStorage.setItem('test_jwt', this.value);
+            });
+        };
+    </script>
+</body>
+</html>

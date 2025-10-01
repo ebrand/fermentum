@@ -1,0 +1,452 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Fermentum.Auth.Data;
+using FermentumApi.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+
+namespace Fermentum.Auth.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class InventoryController : ControllerBase
+    {
+        private readonly AuthDbContext _context;
+        private readonly ILogger<InventoryController> _logger;
+
+        public InventoryController(AuthDbContext context, ILogger<InventoryController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        private Guid? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return null;
+            }
+            return userId;
+        }
+
+        private async Task<Guid?> GetUserTenantIdAsync()
+        {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return null;
+
+            var userTenant = await _context.UserTenants
+                .Where(ut => ut.UserId == currentUserId.Value && ut.IsActive)
+                .FirstOrDefaultAsync();
+
+            return userTenant?.TenantId;
+        }
+
+        private async Task<bool> ValidateBreweryAccess(Guid breweryId, Guid tenantId)
+        {
+            return await _context.Breweries
+                .AnyAsync(b => b.BreweryId == breweryId && b.TenantId == tenantId);
+        }
+
+        // GET: api/inventory/raw-materials/{breweryId}
+        [HttpGet("raw-materials/{breweryId}")]
+        public async Task<ActionResult> GetRawMaterialInventory(Guid breweryId)
+        {
+            try
+            {
+                var tenantId = await GetUserTenantIdAsync();
+                if (!tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "No active tenant found" });
+                }
+
+                if (!await ValidateBreweryAccess(breweryId, tenantId.Value))
+                {
+                    return Forbid("Access denied to brewery");
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var inventory = await _context.InventoryLots
+                    .Include(inv => inv.Material)
+                        .ThenInclude(m => m.Category)
+                    .Where(inv => inv.BreweryId == breweryId)
+                    .Select(inv => new
+                    {
+                        inventoryId = inv.InventoryId,
+                        materialId = inv.MaterialId,
+                        breweryId = inv.BreweryId,
+                        material = new
+                        {
+                            name = inv.Material.Name,
+                            description = inv.Material.Description,
+                            sku = inv.Material.SKU,
+                            unitOfMeasure = inv.Material.UnitOfMeasure,
+                            costPerUnit = inv.Material.CostPerUnit,
+                            minimumStock = inv.Material.MinimumStock,
+                            reorderPoint = inv.Material.ReorderPoint,
+                            category = inv.Material.Category != null ? inv.Material.Category.Name : null
+                        },
+                        currentStock = inv.CurrentStock,
+                        reservedStock = inv.ReservedStock,
+                        availableStock = inv.AvailableStock,
+                        lastStockTake = inv.LastStockTake,
+                        lastStockTakeBy = inv.LastStockTakeBy,
+                        created = inv.Created,
+                        updated = inv.Updated,
+                        // Computed fields
+                        needsReorder = inv.AvailableStock <= inv.Material.ReorderPoint,
+                        stockStatus = inv.AvailableStock <= inv.Material.MinimumStock ? "Low" :
+                                     inv.AvailableStock <= inv.Material.ReorderPoint ? "Reorder" : "Good"
+                    })
+                    .OrderBy(inv => inv.material.name)
+                    .ToListAsync();
+
+                return Ok(new { success = true, data = inventory });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving raw material inventory for brewery {BreweryId}", breweryId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // POST: api/inventory/raw-materials/receive
+        [HttpPost("raw-materials/receive")]
+        public async Task<ActionResult> ReceiveRawMaterial([FromBody] ReceiveRawMaterialRequest request)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var tenantId = await GetUserTenantIdAsync();
+
+                if (!currentUserId.HasValue || !tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "Authentication required" });
+                }
+
+                if (!await ValidateBreweryAccess(request.BreweryId, tenantId.Value))
+                {
+                    return Forbid("Access denied to brewery");
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    // Verify material exists and belongs to tenant
+                    var material = await _context.RawMaterials
+                        .FirstOrDefaultAsync(m => m.MaterialId == request.MaterialId && m.TenantId == tenantId.Value);
+
+                    if (material == null)
+                    {
+                        return BadRequest(new { success = false, message = "Material not found" });
+                    }
+
+                    // Get or create inventory record
+                    var inventory = await _context.InventoryLots
+                        .FirstOrDefaultAsync(inv => inv.MaterialId == request.MaterialId && inv.BreweryId == request.BreweryId);
+
+                    if (inventory == null)
+                    {
+                        inventory = new RawMaterialInventory
+                        {
+                            InventoryId = Guid.NewGuid(),
+                            MaterialId = request.MaterialId,
+                            BreweryId = request.BreweryId,
+                            CurrentStock = 0,
+                            ReservedStock = 0,
+                            Created = DateTime.UtcNow,
+                            Updated = DateTime.UtcNow
+                        };
+                        _context.InventoryLots.Add(inventory);
+                    }
+
+                    // Update stock
+                    inventory.CurrentStock += request.Quantity;
+                    inventory.Updated = DateTime.UtcNow;
+
+                    // Create transaction record
+                    var inventoryTransaction = new InventoryTransaction
+                    {
+                        TransactionId = Guid.NewGuid(),
+                        BreweryId = request.BreweryId,
+                        TransactionType = TransactionTypes.RECEIPT,
+                        MaterialId = request.MaterialId,
+                        Quantity = request.Quantity,
+                        UnitOfMeasure = material.UnitOfMeasure,
+                        UnitCost = request.UnitCost,
+                        Reference = request.Reference,
+                        Notes = request.Notes,
+                        TransactionDate = DateTime.UtcNow,
+                        CreatedBy = currentUserId.Value,
+                        Created = DateTime.UtcNow
+                    };
+
+                    _context.InventoryTransactions.Add(inventoryTransaction);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation("Received {Quantity} {Unit} of material {MaterialId} at brewery {BreweryId}",
+                        request.Quantity, material.UnitOfMeasure, request.MaterialId, request.BreweryId);
+
+                    return Ok(new { success = true, message = "Raw material received successfully" });
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error receiving raw material");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // POST: api/inventory/raw-materials/adjust
+        [HttpPost("raw-materials/adjust")]
+        public async Task<ActionResult> AdjustRawMaterialStock([FromBody] AdjustStockRequest request)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var tenantId = await GetUserTenantIdAsync();
+
+                if (!currentUserId.HasValue || !tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "Authentication required" });
+                }
+
+                if (!await ValidateBreweryAccess(request.BreweryId, tenantId.Value))
+                {
+                    return Forbid("Access denied to brewery");
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    // Verify material and inventory exist
+                    var inventory = await _context.InventoryLots
+                        .Include(inv => inv.Material)
+                        .FirstOrDefaultAsync(inv => inv.MaterialId == request.MaterialId &&
+                                                   inv.BreweryId == request.BreweryId &&
+                                                   inv.Material.TenantId == tenantId.Value);
+
+                    if (inventory == null)
+                    {
+                        return BadRequest(new { success = false, message = "Inventory record not found" });
+                    }
+
+                    // Calculate adjustment quantity
+                    var adjustmentQuantity = request.NewQuantity - inventory.CurrentStock;
+
+                    if (adjustmentQuantity == 0)
+                    {
+                        return Ok(new { success = true, message = "No adjustment needed" });
+                    }
+
+                    // Update stock
+                    var previousStock = inventory.CurrentStock;
+                    inventory.CurrentStock = request.NewQuantity;
+                    inventory.LastStockTake = DateTime.UtcNow;
+                    inventory.LastStockTakeBy = currentUserId.Value;
+                    inventory.Updated = DateTime.UtcNow;
+
+                    // Create transaction record
+                    var inventoryTransaction = new InventoryTransaction
+                    {
+                        TransactionId = Guid.NewGuid(),
+                        BreweryId = request.BreweryId,
+                        TransactionType = TransactionTypes.ADJUSTMENT,
+                        MaterialId = request.MaterialId,
+                        Quantity = adjustmentQuantity,
+                        UnitOfMeasure = inventory.Material.UnitOfMeasure,
+                        Reference = request.Reference,
+                        Notes = $"Stock adjusted from {previousStock} to {request.NewQuantity}. Reason: {request.Reason}",
+                        TransactionDate = DateTime.UtcNow,
+                        CreatedBy = currentUserId.Value,
+                        Created = DateTime.UtcNow
+                    };
+
+                    _context.InventoryTransactions.Add(inventoryTransaction);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation("Adjusted stock for material {MaterialId} at brewery {BreweryId} from {PreviousStock} to {NewStock}",
+                        request.MaterialId, request.BreweryId, previousStock, request.NewQuantity);
+
+                    return Ok(new { success = true, message = "Stock adjusted successfully" });
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adjusting raw material stock");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // GET: api/inventory/transactions/{breweryId}
+        [HttpGet("transactions/{breweryId}")]
+        public async Task<ActionResult> GetInventoryTransactions(Guid breweryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                var tenantId = await GetUserTenantIdAsync();
+                if (!tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "No active tenant found" });
+                }
+
+                if (!await ValidateBreweryAccess(breweryId, tenantId.Value))
+                {
+                    return Forbid("Access denied to brewery");
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var skip = (page - 1) * pageSize;
+
+                var transactions = await _context.InventoryTransactions
+                    .Include(t => t.Material)
+                    .Include(t => t.Product)
+                    .Include(t => t.CreatedByUser)
+                    .Where(t => t.BreweryId == breweryId)
+                    .OrderByDescending(t => t.TransactionDate)
+                    .Skip(skip)
+                    .Take(pageSize)
+                    .Select(t => new
+                    {
+                        transactionId = t.TransactionId,
+                        breweryId = t.BreweryId,
+                        transactionType = t.TransactionType,
+                        materialId = t.MaterialId,
+                        productId = t.ProductId,
+                        materialName = t.Material != null ? t.Material.Name : null,
+                        productName = t.Product != null ? t.Product.Name : null,
+                        quantity = t.Quantity,
+                        unitOfMeasure = t.UnitOfMeasure,
+                        unitCost = t.UnitCost,
+                        totalCost = t.TotalCost,
+                        reference = t.Reference,
+                        notes = t.Notes,
+                        transactionDate = t.TransactionDate,
+                        createdBy = t.CreatedByUser.FirstName + " " + t.CreatedByUser.LastName,
+                        created = t.Created
+                    })
+                    .ToListAsync();
+
+                var totalCount = await _context.InventoryTransactions
+                    .CountAsync(t => t.BreweryId == breweryId);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = transactions,
+                    pagination = new
+                    {
+                        page,
+                        pageSize,
+                        totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving inventory transactions for brewery {BreweryId}", breweryId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // GET: api/inventory/low-stock/{breweryId}
+        [HttpGet("low-stock/{breweryId}")]
+        public async Task<ActionResult> GetLowStockItems(Guid breweryId)
+        {
+            try
+            {
+                var tenantId = await GetUserTenantIdAsync();
+                if (!tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "No active tenant found" });
+                }
+
+                if (!await ValidateBreweryAccess(breweryId, tenantId.Value))
+                {
+                    return Forbid("Access denied to brewery");
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var lowStockItems = await _context.InventoryLots
+                    .Include(inv => inv.Material)
+                        .ThenInclude(m => m.Category)
+                    .Where(inv => inv.BreweryId == breweryId &&
+                                 inv.Material.TenantId == tenantId.Value &&
+                                 inv.Material.IsActive &&
+                                 inv.AvailableStock <= inv.Material.ReorderPoint)
+                    .Select(inv => new
+                    {
+                        materialId = inv.MaterialId,
+                        materialName = inv.Material.Name,
+                        category = inv.Material.Category != null ? inv.Material.Category.Name : null,
+                        unitOfMeasure = inv.Material.UnitOfMeasure,
+                        currentStock = inv.CurrentStock,
+                        availableStock = inv.AvailableStock,
+                        minimumStock = inv.Material.MinimumStock,
+                        reorderPoint = inv.Material.ReorderPoint,
+                        stockStatus = inv.AvailableStock <= inv.Material.MinimumStock ? "Critical" : "Low",
+                        lastStockTake = inv.LastStockTake
+                    })
+                    .OrderBy(inv => inv.availableStock)
+                    .ToListAsync();
+
+                return Ok(new { success = true, data = lowStockItems });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving low stock items for brewery {BreweryId}", breweryId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+    }
+
+    // DTOs for Inventory operations
+    public class ReceiveRawMaterialRequest
+    {
+        public Guid MaterialId { get; set; }
+        public Guid BreweryId { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal? UnitCost { get; set; }
+        public string? Reference { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class AdjustStockRequest
+    {
+        public Guid MaterialId { get; set; }
+        public Guid BreweryId { get; set; }
+        public decimal NewQuantity { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string? Reference { get; set; }
+    }
+}

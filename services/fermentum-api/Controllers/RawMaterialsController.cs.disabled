@@ -1,0 +1,426 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Fermentum.Auth.Data;
+using FermentumApi.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+
+namespace Fermentum.Auth.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class RawMaterialsController : ControllerBase
+    {
+        private readonly AuthDbContext _context;
+        private readonly ILogger<RawMaterialsController> _logger;
+
+        public RawMaterialsController(AuthDbContext context, ILogger<RawMaterialsController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        private Guid? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return null;
+            }
+            return userId;
+        }
+
+        private async Task<Guid?> GetUserTenantIdAsync()
+        {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue) return null;
+
+            // Get tenant ID from user's active tenant relationship
+            var userTenant = await _context.UserTenants
+                .Where(ut => ut.UserId == currentUserId.Value && ut.IsActive)
+                .FirstOrDefaultAsync();
+
+            return userTenant?.TenantId;
+        }
+
+        // GET: api/rawmaterials
+        [HttpGet]
+        public async Task<ActionResult> GetRawMaterials([FromQuery] bool includeInactive = false)
+        {
+            try
+            {
+                var tenantId = await GetUserTenantIdAsync();
+                if (!tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "No active tenant found" });
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var query = _context.RawMaterials
+                    .Include(rm => rm.Category)
+                    .Where(rm => rm.TenantId == tenantId.Value);
+
+                if (!includeInactive)
+                {
+                    query = query.Where(rm => rm.IsActive);
+                }
+
+                var rawMaterials = await query
+                    .Select(rm => new
+                    {
+                        materialId = rm.MaterialId,
+                        tenantId = rm.TenantId,
+                        categoryId = rm.CategoryId,
+                        categoryName = rm.Category != null ? rm.Category.Name : null,
+                        name = rm.Name,
+                        description = rm.Description,
+                        sku = rm.SKU,
+                        unitOfMeasure = rm.UnitOfMeasure,
+                        costPerUnit = rm.DefaultUnitCost,
+                        minimumStock = rm.MinimumStockLevel,
+                        reorderPoint = rm.ReorderLevel,
+                        isActive = rm.IsActive,
+                        created = rm.Created,
+                        updated = rm.Updated
+                    })
+                    .OrderBy(rm => rm.name)
+                    .ToListAsync();
+
+                return Ok(new { success = true, data = rawMaterials });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving raw materials");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // GET: api/rawmaterials/categories
+        [HttpGet("categories")]
+        public async Task<ActionResult> GetRawMaterialCategories()
+        {
+            try
+            {
+                var categories = await _context.RawMaterialCategories
+                    .Select(c => new
+                    {
+                        categoryId = c.CategoryId,
+                        name = c.Name,
+                        description = c.Description
+                    })
+                    .OrderBy(c => c.name)
+                    .ToListAsync();
+
+                return Ok(new { success = true, data = categories });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving raw material categories");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // GET: api/rawmaterials/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult> GetRawMaterial(Guid id)
+        {
+            try
+            {
+                var tenantId = await GetUserTenantIdAsync();
+                if (!tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "No active tenant found" });
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var rawMaterial = await _context.RawMaterials
+                    .Include(rm => rm.Category)
+                    .Where(rm => rm.MaterialId == id && rm.TenantId == tenantId.Value)
+                    .Select(rm => new
+                    {
+                        materialId = rm.MaterialId,
+                        tenantId = rm.TenantId,
+                        categoryId = rm.CategoryId,
+                        categoryName = rm.Category != null ? rm.Category.Name : null,
+                        name = rm.Name,
+                        description = rm.Description,
+                        sku = rm.SKU,
+                        unitOfMeasure = rm.UnitOfMeasure,
+                        costPerUnit = rm.DefaultUnitCost,
+                        minimumStock = rm.MinimumStockLevel,
+                        reorderPoint = rm.ReorderLevel,
+                        isActive = rm.IsActive,
+                        created = rm.Created,
+                        updated = rm.Updated
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (rawMaterial == null)
+                {
+                    return NotFound(new { success = false, message = "Raw material not found" });
+                }
+
+                return Ok(new { success = true, data = rawMaterial });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving raw material {MaterialId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // POST: api/rawmaterials
+        [HttpPost]
+        public async Task<ActionResult> CreateRawMaterial([FromBody] CreateRawMaterialRequest request)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var tenantId = await GetUserTenantIdAsync();
+
+                if (!currentUserId.HasValue || !tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "Authentication required" });
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                // Validate category exists if provided
+                if (request.CategoryId.HasValue)
+                {
+                    var categoryExists = await _context.RawMaterialCategories
+                        .AnyAsync(c => c.CategoryId == request.CategoryId.Value);
+
+                    if (!categoryExists)
+                    {
+                        return BadRequest(new { success = false, message = "Invalid category selected" });
+                    }
+                }
+
+                // Check for duplicate SKU within tenant
+                if (!string.IsNullOrEmpty(request.SKU))
+                {
+                    var duplicateSKU = await _context.RawMaterials
+                        .AnyAsync(rm => rm.TenantId == tenantId.Value && rm.SKU == request.SKU);
+
+                    if (duplicateSKU)
+                    {
+                        return BadRequest(new { success = false, message = "SKU already exists for this tenant" });
+                    }
+                }
+
+                var rawMaterial = new RawMaterial
+                {
+                    MaterialId = Guid.NewGuid(),
+                    TenantId = tenantId.Value,
+                    CategoryId = request.CategoryId,
+                    Name = request.Name.Trim(),
+                    Description = request.Description?.Trim(),
+                    SKU = request.SKU?.Trim(),
+                    UnitOfMeasure = request.UnitOfMeasure.Trim(),
+                    CostPerUnit = request.CostPerUnit,
+                    MinimumStock = request.MinimumStock ?? 0,
+                    ReorderPoint = request.ReorderPoint ?? 0,
+                    IsActive = true,
+                    Created = DateTime.UtcNow,
+                    CreatedBy = currentUserId.Value,
+                    Updated = DateTime.UtcNow,
+                    UpdatedBy = currentUserId.Value
+                };
+
+                _context.RawMaterials.Add(rawMaterial);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Created raw material {MaterialId} for tenant {TenantId}",
+                    rawMaterial.MaterialId, tenantId.Value);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        materialId = rawMaterial.MaterialId,
+                        name = rawMaterial.Name,
+                        sku = rawMaterial.SKU,
+                        unitOfMeasure = rawMaterial.UnitOfMeasure
+                    },
+                    message = "Raw material created successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating raw material");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // PUT: api/rawmaterials/{id}
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateRawMaterial(Guid id, [FromBody] UpdateRawMaterialRequest request)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var tenantId = await GetUserTenantIdAsync();
+
+                if (!currentUserId.HasValue || !tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "Authentication required" });
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var rawMaterial = await _context.RawMaterials
+                    .FirstOrDefaultAsync(rm => rm.MaterialId == id && rm.TenantId == tenantId.Value);
+
+                if (rawMaterial == null)
+                {
+                    return NotFound(new { success = false, message = "Raw material not found" });
+                }
+
+                // Validate category exists if provided
+                if (request.CategoryId.HasValue)
+                {
+                    var categoryExists = await _context.RawMaterialCategories
+                        .AnyAsync(c => c.CategoryId == request.CategoryId.Value);
+
+                    if (!categoryExists)
+                    {
+                        return BadRequest(new { success = false, message = "Invalid category selected" });
+                    }
+                }
+
+                // Check for duplicate SKU within tenant (excluding current material)
+                if (!string.IsNullOrEmpty(request.SKU))
+                {
+                    var duplicateSKU = await _context.RawMaterials
+                        .AnyAsync(rm => rm.TenantId == tenantId.Value &&
+                                       rm.SKU == request.SKU &&
+                                       rm.MaterialId != id);
+
+                    if (duplicateSKU)
+                    {
+                        return BadRequest(new { success = false, message = "SKU already exists for this tenant" });
+                    }
+                }
+
+                // Update properties
+                rawMaterial.CategoryId = request.CategoryId;
+                rawMaterial.Name = request.Name.Trim();
+                rawMaterial.Description = request.Description?.Trim();
+                rawMaterial.SKU = request.SKU?.Trim();
+                rawMaterial.UnitOfMeasure = request.UnitOfMeasure.Trim();
+                rawMaterial.DefaultUnitCost = request.CostPerUnit;
+                rawMaterial.MinimumStockLevel = request.MinimumStock ?? 0;
+                rawMaterial.ReorderLevel = request.ReorderPoint ?? 0;
+                rawMaterial.IsActive = request.IsActive ?? true;
+                rawMaterial.Updated = DateTime.UtcNow;
+                rawMaterial.UpdatedBy = currentUserId.Value;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Updated raw material {MaterialId} for tenant {TenantId}",
+                    rawMaterial.MaterialId, tenantId.Value);
+
+                return Ok(new { success = true, message = "Raw material updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating raw material {MaterialId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        // DELETE: api/rawmaterials/{id}
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteRawMaterial(Guid id)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                var tenantId = await GetUserTenantIdAsync();
+
+                if (!currentUserId.HasValue || !tenantId.HasValue)
+                {
+                    return Unauthorized(new { success = false, message = "Authentication required" });
+                }
+
+                // Set tenant context for RLS
+                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+
+                var rawMaterial = await _context.RawMaterials
+                    .FirstOrDefaultAsync(rm => rm.MaterialId == id && rm.TenantId == tenantId.Value);
+
+                if (rawMaterial == null)
+                {
+                    return NotFound(new { success = false, message = "Raw material not found" });
+                }
+
+                // Check if material is used in any inventory lots or transactions
+                var hasInventory = await _context.InventoryLots
+                    .AnyAsync(lot => lot.MaterialId == id);
+
+                var hasTransactions = await _context.InventoryTransactions
+                    .AnyAsync(trans => trans.Lot.MaterialId == id);
+
+                if (hasInventory || hasTransactions)
+                {
+                    // Soft delete - mark as inactive instead of removing
+                    rawMaterial.IsActive = false;
+                    rawMaterial.Updated = DateTime.UtcNow;
+                    rawMaterial.UpdatedBy = currentUserId.Value;
+
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new { success = true, message = "Raw material deactivated (has inventory/transaction history)" });
+                }
+                else
+                {
+                    // Hard delete if no references exist
+                    _context.RawMaterials.Remove(rawMaterial);
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new { success = true, message = "Raw material deleted successfully" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting raw material {MaterialId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+    }
+
+    // DTOs for Raw Materials
+    public class CreateRawMaterialRequest
+    {
+        public Guid? CategoryId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? SKU { get; set; }
+        public string UnitOfMeasure { get; set; } = string.Empty;
+        public decimal? CostPerUnit { get; set; }
+        public decimal? MinimumStock { get; set; }
+        public decimal? ReorderPoint { get; set; }
+    }
+
+    public class UpdateRawMaterialRequest
+    {
+        public Guid? CategoryId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? SKU { get; set; }
+        public string UnitOfMeasure { get; set; } = string.Empty;
+        public decimal? CostPerUnit { get; set; }
+        public decimal? MinimumStock { get; set; }
+        public decimal? ReorderPoint { get; set; }
+        public bool? IsActive { get; set; }
+    }
+}
