@@ -36,6 +36,13 @@ public class StytchService : IStytchService
         _projectSecret = configuration["Stytch:ProjectSecret"] ?? throw new InvalidOperationException("Stytch ProjectSecret is required");
         _publicToken = configuration["Stytch:PublicToken"] ?? throw new InvalidOperationException("Stytch PublicToken is required");
 
+        // DEBUG: Log what Stytch values we're actually using
+        _logger.LogInformation("=== STYTCH CONFIG DEBUG ===");
+        _logger.LogInformation("Project ID: {ProjectId}", string.IsNullOrEmpty(_projectId) ? "<EMPTY>" : $"{_projectId.Substring(0, Math.Min(20, _projectId.Length))}...");
+        _logger.LogInformation("Project Secret: {ProjectSecret}", string.IsNullOrEmpty(_projectSecret) ? "<EMPTY>" : "<SET>");
+        _logger.LogInformation("Public Token: {PublicToken}", string.IsNullOrEmpty(_publicToken) ? "<EMPTY>" : $"{_publicToken.Substring(0, Math.Min(30, _publicToken.Length))}...");
+        _logger.LogInformation("==========================");
+
         // Use test environment URL for development
         var environment = configuration["Stytch:Environment"] ?? "test";
         _baseUrl = environment == "live" ? "https://api.stytch.com" : "https://test.stytch.com";
