@@ -265,6 +265,8 @@ builder.Services.AddCors(options =>
                     "http://admin.fermentum.dev",
                     "https://fermentum.dev",
                     "https://admin.fermentum.dev",
+                    "http://www.fermentum.dev",
+                    "https://www.fermentum.dev",
                     "http://localhost:3000",
                     "https://localhost:3000"
                 )
