@@ -15,12 +15,12 @@ WORKDIR /src
 RUN echo "cache_buster=${CACHE_BUSTER}"
 
 # Copy solution and project files first for better layer caching
-COPY ["services/fermentum-api/Fermentum.Auth.csproj", "services/fermentum-api/"]
-RUN dotnet restore "services/fermentum-api/Fermentum.Auth.csproj"
+COPY ["Fermentum.Auth.csproj", "./"]
+RUN dotnet restore "Fermentum.Auth.csproj"
 
 # Copy source code (this layer busts when code changes)
-COPY services/fermentum-api/ services/fermentum-api/
-WORKDIR "/src/services/fermentum-api"
+COPY . .
+WORKDIR "/src"
 
 # Build with version info
 RUN dotnet build "Fermentum.Auth.csproj" -c Release -o /app/build \
