@@ -4,8 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>Fermentum.Auth</AssemblyName>
-    <RootNamespace>Fermentum.Auth</RootNamespace>
+    <AssemblyName>FermentumApi</AssemblyName>
+    <RootNamespace>FermentumApi</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
