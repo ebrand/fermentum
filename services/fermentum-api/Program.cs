@@ -271,6 +271,17 @@ app.MapHub<NotificationHub>("/hubs/notification");
 // Database Migration
 using (var scope = app.Services.CreateScope())
 {
+    // DEBUG: Log connection string to diagnose Railway issue
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("=== CONNECTION STRING DEBUG ===");
+    logger.LogInformation("Connection string length: {Length}", connString?.Length ?? 0);
+    logger.LogInformation("Connection string (masked): {ConnString}",
+        string.IsNullOrEmpty(connString) ? "<NULL or EMPTY>" :
+        connString.Length < 20 ? connString :
+        $"{connString.Substring(0, 20)}...(total {connString.Length} chars)");
+    logger.LogInformation("=============================");
+
     var context = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
     context.Database.EnsureCreated();
 }
