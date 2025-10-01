@@ -24,9 +24,9 @@ DECLARE
     v_pump_type_id UUID;
 BEGIN
     -- Get first tenant and user for seed data
-    SELECT "TenantId" INTO v_tenant_id FROM "Tenant" ORDER BY "Created" LIMIT 1;
-    SELECT "UserId" INTO v_user_id FROM "User" ORDER BY "Created" LIMIT 1;
-    SELECT "BreweryId" INTO v_brewery_id FROM "Brewery" WHERE "TenantId" = v_tenant_id ORDER BY "Created" LIMIT 1;
+    SELECT "TenantId" INTO v_tenant_id FROM "Tenant" LIMIT 1;
+    SELECT "UserId" INTO v_user_id FROM "User" LIMIT 1;
+    SELECT "BreweryId" INTO v_brewery_id FROM "Brewery" WHERE "TenantId" = v_tenant_id LIMIT 1;
 
     -- Validate we have required data
     IF v_tenant_id IS NULL THEN
