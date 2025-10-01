@@ -2,8 +2,8 @@
 builder = "DOCKERFILE"
 
 [build.args]
-VITE_API_URL = "https://api.fermentum.dev/api"
-VITE_STYTCH_PUBLIC_TOKEN = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
+VITE_API_URL = "${{VITE_API_URL}}"
+VITE_STYTCH_PUBLIC_TOKEN = "${{VITE_STYTCH_PUBLIC_TOKEN}}"
 
 [deploy]
 numReplicas = 1
@@ -12,5 +12,10 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [variables]
-VITE_API_URL = "https://api.fermentum.dev/api"
-VITE_STYTCH_PUBLIC_TOKEN = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
+# NOTE: VITE_ variables must be set in Railway dashboard
+# They are referenced in [build.args] using ${{VARIABLE_NAME}} syntax
+# and injected into Docker container during build
+#
+# Required variables (set these in Railway dashboard):
+#   VITE_API_URL = "https://api.fermentum.dev/api"
+#   VITE_STYTCH_PUBLIC_TOKEN = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
