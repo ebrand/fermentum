@@ -73,7 +73,7 @@ ENV BUILD_TIME=${BUILD_TIME}
 # As a workaround, we hardcode all values directly here.
 # NOTE: These are test/development credentials only.
 ENV ASPNETCORE_ENVIRONMENT="Production"
-ENV ASPNETCORE_URLS="http://+:8080"
+ENV ASPNETCORE_URLS="http://+:${PORT:-8080}"
 ENV ConnectionStrings__DefaultConnection="Host=postgres.railway.internal;Port=5432;Database=railway;Username=postgres;Password=WzDKXNheaetFpzbsEhMoCpzWASzyPFtH"
 ENV ConnectionStrings__Redis="redis.railway.internal:6379,password=lSmKXiFBTOIsbtgwvHudKCNIAJBoNACn"
 ENV Stytch__ProjectId="project-test-602a83cb-068f-4dd4-a473-0bb708335ee6"
