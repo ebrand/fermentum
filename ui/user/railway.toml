@@ -6,3 +6,6 @@ numReplicas = 1
 sleepApplication = false
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+[variables]
+VITE_API_URL = "https://api.fermentum.dev/api"
