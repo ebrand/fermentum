@@ -10,7 +10,7 @@ WORKDIR /app
 RUN echo "cache_buster=${CACHE_BUSTER}"
 
 # Copy source code
-COPY ui/user/ .
+COPY . .
 
 # Remove any existing node_modules and package-lock to avoid architecture conflicts
 RUN rm -rf node_modules package-lock.json
@@ -25,7 +25,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copy custom nginx config
-COPY ui/user/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
