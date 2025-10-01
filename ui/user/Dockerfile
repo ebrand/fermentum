@@ -1,6 +1,7 @@
 # Build arguments for cache busting and API URL
 ARG CACHE_BUSTER=0
 ARG VITE_API_URL=http://localhost:5001/api
+ARG VITE_STYTCH_PUBLIC_TOKEN
 
 # Build stage
 FROM node:18-alpine AS build
@@ -19,8 +20,9 @@ RUN rm -rf node_modules package-lock.json
 # Install dependencies fresh
 RUN npm install
 
-# Set environment variable for Vite build
+# Set environment variables for Vite build
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_STYTCH_PUBLIC_TOKEN=${VITE_STYTCH_PUBLIC_TOKEN}
 
 # Build the application
 RUN npm run build
