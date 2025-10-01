@@ -102,7 +102,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-fermentum-800 to-fermentum-800">
+      <section className="bg-fermentum-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6">
