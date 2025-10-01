@@ -9,4 +9,4 @@ restartPolicyMaxRetries = 10
 
 [variables]
 ASPNETCORE_ENVIRONMENT = "Production"
-ASPNETCORE_URLS = "http://0.0.0.0:8080"
+ASPNETCORE_URLS = "http://0.0.0.0:${PORT:-8080}"
