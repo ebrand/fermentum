@@ -1,9 +1,5 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-
-[build.args]
-VITE_API_URL = "https://api.fermentum.dev/api"
+builder = "NIXPACKS"
 
 [deploy]
 numReplicas = 1
