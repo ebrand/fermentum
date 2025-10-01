@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 
 [build.args]
 VITE_API_URL = "https://api.fermentum.dev/api"
-# VITE_STYTCH_PUBLIC_TOKEN should be set in Railway dashboard
+VITE_STYTCH_PUBLIC_TOKEN = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
 
 [deploy]
 numReplicas = 1
@@ -13,4 +13,4 @@ restartPolicyMaxRetries = 10
 
 [variables]
 VITE_API_URL = "https://api.fermentum.dev/api"
-# VITE_STYTCH_PUBLIC_TOKEN = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
+VITE_STYTCH_PUBLIC_TOKEN = "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
