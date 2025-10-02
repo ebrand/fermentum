@@ -76,7 +76,8 @@ ENV BUILD_TIME=${BUILD_TIME}
 # In Railway, set these as service variables for security
 
 ENV ASPNETCORE_ENVIRONMENT="Production"
-ENV ASPNETCORE_URLS="http://+:${PORT:-8080}"
+# ASPNETCORE_URLS must be set in Railway service variables as: http://0.0.0.0:$PORT
+# Do not set it here - Railway's PORT variable is only available at runtime
 
 # Database connection (set in Railway as environment variable)
 ENV ConnectionStrings__DefaultConnection=""
