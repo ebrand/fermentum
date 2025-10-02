@@ -13,18 +13,22 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel to use HTTP/1.1 for all endpoints in development to avoid HTTP/2 SSL issues
-if (builder.Environment.IsDevelopment())
+// Configure Kestrel to use Railway's PORT environment variable
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    builder.WebHost.ConfigureKestrel(serverOptions =>
+    if (builder.Environment.IsDevelopment())
     {
-        // Force HTTP/1.1 globally to avoid HTTP/2 SSL certificate issues with 401 responses
+        // Force HTTP/1.1 globally in dev to avoid HTTP/2 SSL certificate issues with 401 responses
         serverOptions.ConfigureEndpointDefaults(listenOptions =>
         {
             listenOptions.Protocols = HttpProtocols.Http1;
         });
-    });
-}
+    }
+});
+
+// Set the listening URL using Railway's PORT or default to 8080
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Configure standard .NET logging
 builder.Logging.ClearProviders();
@@ -263,9 +267,7 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                     "http://fermentum.dev",
-                    "http://admin.fermentum.dev",
                     "https://fermentum.dev",
-                    "https://admin.fermentum.dev",
                     "http://www.fermentum.dev",
                     "https://www.fermentum.dev",
                     "http://localhost:3000",
