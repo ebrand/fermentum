@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { XMarkIcon, CalendarIcon, ClockIcon } from '@heroicons/react/24/outline'
 import StyledCombobox from './common/StyledCombobox'
+import StyledDatePicker from './common/StyledDatePicker'
 import { employeeAPI } from '../utils/api'
 
 const priorityOptions = [
@@ -221,7 +222,7 @@ export default function AssignmentModal({
               type="text"
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-fermentum-500 focus:border-transparent ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               placeholder="Enter assignment title"
               disabled={readOnly}
               required={!readOnly}
@@ -237,7 +238,7 @@ export default function AssignmentModal({
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-fermentum-500 focus:border-transparent ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               placeholder="Describe the assignment details"
               disabled={readOnly}
             />
@@ -279,19 +280,13 @@ export default function AssignmentModal({
 
           {/* Due Date and Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <CalendarIcon className="h-4 w-4 inline mr-1" />
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => handleChange('dueDate', e.target.value)}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-fermentum-500 focus:border-transparent ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                disabled={readOnly}
-              />
-            </div>
+            <StyledDatePicker
+              label="Due Date"
+              value={formData.dueDate}
+              onChange={(date) => handleChange('dueDate', date)}
+              placeholder="Select due date..."
+              disabled={readOnly}
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -302,7 +297,7 @@ export default function AssignmentModal({
                 type="time"
                 value={formData.dueTime}
                 onChange={(e) => handleChange('dueTime', e.target.value)}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-fermentum-500 focus:border-transparent ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 disabled={readOnly}
               />
             </div>
@@ -317,7 +312,7 @@ export default function AssignmentModal({
               type="text"
               value={formData.location}
               onChange={(e) => handleChange('location', e.target.value)}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-fermentum-500 focus:border-transparent ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               placeholder="Where should this task be performed?"
               disabled={readOnly}
             />
@@ -347,7 +342,7 @@ export default function AssignmentModal({
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
               rows={2}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-fermentum-500 focus:border-transparent ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               placeholder="Any additional instructions or notes"
               disabled={readOnly}
             />

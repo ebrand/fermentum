@@ -61,7 +61,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var query = _context.Equipment
                     .Include(e => e.EquipmentType)
@@ -130,7 +130,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipment = await _context.Equipment
                     .Include(e => e.EquipmentType)
@@ -191,7 +191,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var query = _context.Equipment
                     .Include(e => e.EquipmentType)
@@ -262,7 +262,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "User ID not found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipment = new Equipment
                 {
@@ -355,7 +355,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "User ID not found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipment = await _context.Equipment
                     .FirstOrDefaultAsync(e => e.EquipmentId == id && e.TenantId == tenantId.Value);
@@ -447,7 +447,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "User ID not found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipment = await _context.Equipment
                     .FirstOrDefaultAsync(e => e.EquipmentId == id && e.TenantId == tenantId.Value);
@@ -484,7 +484,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipment = await _context.Equipment
                     .FirstOrDefaultAsync(e => e.EquipmentId == id && e.TenantId == tenantId.Value);
@@ -595,13 +595,13 @@ namespace Fermentum.Auth.Controllers
         public string? Description { get; set; }
 
         [JsonPropertyName("status")]
-        public string Status { get; set; } = string.Empty;
+        public string? Status { get; set; }
 
         [JsonPropertyName("capacity")]
         public decimal? Capacity { get; set; }
 
         [JsonPropertyName("capacityUnit")]
-        public string CapacityUnit { get; set; } = string.Empty;
+        public string? CapacityUnit { get; set; }
 
         [JsonPropertyName("workingCapacity")]
         public decimal? WorkingCapacity { get; set; }

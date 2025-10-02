@@ -4,6 +4,7 @@ import { useSession } from '../contexts/SessionContext'
 import { PERMISSIONS, filterNavigationByPermissions } from '../utils/permissions'
 import { TenantId, TenantIdCompact, UserId, UserIdCompact, BreweryId, BreweryIdCompact } from './IdDisplay'
 import NotificationBell from './NotificationBell'
+import { getProfilePictureUrl } from '../utils/api'
 import {
   Bars3Icon,
   UserIcon,
@@ -506,11 +507,19 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-150"
                 >
-                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-medium text-white font-['Menlo','Monaco','monospace']">
-                      {user?.firstName?.[0]}{user?.lastName?.[0]}
-                    </span>
-                  </div>
+                  {user?.profilePictureUrl ? (
+                    <img
+                      src={getProfilePictureUrl(user.profilePictureUrl)}
+                      alt="Profile"
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-medium text-white font-['Menlo','Monaco','monospace']">
+                        {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-left">
                     <p className="text-sm font-medium text-gray-900 font-['Inter','-apple-system','system-ui','sans-serif']">
                       {user?.firstName} {user?.lastName}

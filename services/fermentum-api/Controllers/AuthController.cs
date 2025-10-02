@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Fermentum.Auth.Services;
 using Fermentum.Auth.Models.DTOs;
@@ -363,11 +364,300 @@ public class AuthController : ControllerBase
             });
         }
     }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult> GetCurrentUser()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                             User.FindFirst("nameid")?.Value ??
+                             User.FindFirst("user_id")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid or missing user token" });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found" });
+            }
+
+            _logger.LogInformation("Retrieved user profile for {Email}", user.Email);
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    userId = user.UserId.ToString(),
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    phone = user.Phone,
+                    address = user.Address,
+                    city = user.City,
+                    state = user.State,
+                    zipCode = user.ZipCode,
+                    profilePictureUrl = user.ProfilePictureUrl,
+                    emailVerified = !string.IsNullOrEmpty(user.StytchUserId),
+                    createdAt = user.Created
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving current user profile");
+            return StatusCode(500, new { success = false, message = "Error retrieving profile" });
+        }
+    }
+
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<ActionResult> UpdateCurrentUser([FromBody] UpdateUserRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                             User.FindFirst("nameid")?.Value ??
+                             User.FindFirst("user_id")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid or missing user token" });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found" });
+            }
+
+            // Update allowed fields
+            if (!string.IsNullOrWhiteSpace(request.FirstName))
+                user.FirstName = request.FirstName;
+
+            if (!string.IsNullOrWhiteSpace(request.LastName))
+                user.LastName = request.LastName;
+
+            user.Phone = request.Phone;
+            user.Address = request.Address;
+            user.City = request.City;
+            user.State = request.State;
+            user.ZipCode = request.ZipCode;
+            user.Updated = DateTime.UtcNow;
+            user.UpdatedBy = userId;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Updated user profile for {Email}", user.Email);
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    userId = user.UserId.ToString(),
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    phone = user.Phone,
+                    address = user.Address,
+                    city = user.City,
+                    state = user.State,
+                    zipCode = user.ZipCode,
+                    profilePictureUrl = user.ProfilePictureUrl
+                },
+                message = "Profile updated successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user profile");
+            return StatusCode(500, new { success = false, message = "Error updating profile" });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("upload-picture")]
+    public async Task<ActionResult> UploadProfilePicture([FromForm] IFormFile picture)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                             User.FindFirst("nameid")?.Value ??
+                             User.FindFirst("user_id")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid or missing user token" });
+            }
+
+            if (picture == null || picture.Length == 0)
+            {
+                return BadRequest(new { success = false, message = "No file uploaded" });
+            }
+
+            // Validate file type
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var extension = Path.GetExtension(picture.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest(new { success = false, message = "Invalid file type. Only JPG, PNG, and GIF are allowed." });
+            }
+
+            // Validate file size (max 5MB)
+            if (picture.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { success = false, message = "File size exceeds 5MB limit" });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found" });
+            }
+
+            // Create uploads directory if it doesn't exist
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "profile-pictures");
+            Directory.CreateDirectory(uploadsPath);
+
+            // Generate unique filename
+            var fileName = $"{userId}_{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            // Save the file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await picture.CopyToAsync(stream);
+            }
+
+            // Update user's profile picture URL
+            var pictureUrl = $"/uploads/profile-pictures/{fileName}";
+            user.ProfilePictureUrl = pictureUrl;
+            user.Updated = DateTime.UtcNow;
+            user.UpdatedBy = userId;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Profile picture uploaded for user {UserId}", userId);
+
+            return Ok(new
+            {
+                success = true,
+                data = new { profilePictureUrl = pictureUrl },
+                message = "Profile picture uploaded successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading profile picture");
+            return StatusCode(500, new { success = false, message = "Error uploading profile picture" });
+        }
+    }
+
+    /// <summary>
+    /// Development-only endpoint to generate valid JWT tokens for testing
+    /// DO NOT USE IN PRODUCTION
+    /// </summary>
+    [HttpPost("dev/generate-token")]
+    [ApiExplorerSettings(IgnoreApi = true)] // Hide from Swagger in production
+    public ActionResult GenerateDevToken([FromBody] DevTokenRequest? request = null)
+    {
+        try
+        {
+            _logger.LogWarning("⚠️ DEV TOKEN: Development token generation endpoint called - THIS SHOULD ONLY BE USED IN DEVELOPMENT");
+
+            // Use provided values or defaults for testing
+            var userId = request?.UserId ?? Guid.Parse("b16714d2-1dc7-43fa-a972-89f62bd72b61");
+            var email = request?.Email ?? "eric.d.brand@gmail.com";
+            var firstName = request?.FirstName ?? "Eric";
+            var lastName = request?.LastName ?? "Brand";
+            var tenantId = request?.TenantId ?? Guid.Parse("23f1ad78-d246-4b9f-8d38-d7e91abf4541");
+            var role = request?.Role ?? "tenant";
+
+            // Create a mock user with the specified/default values
+            var mockUser = new User
+            {
+                UserId = userId,
+                Email = email,
+                FirstName = firstName,
+                LastName = lastName,
+                StytchUserId = $"user-test-{Guid.NewGuid()}",
+            };
+
+            // Create a mock tenant with the specified/default tenantId
+            var mockTenant = new Tenant
+            {
+                TenantId = tenantId,
+                Name = request?.TenantName ?? "Test Brewery"
+            };
+
+            // Generate the JWT token using the real JWT service
+            var accessToken = _jwtService.GenerateAccessToken(mockUser, mockTenant, role);
+
+            _logger.LogInformation("🔑 DEV TOKEN: Generated token for UserId: {UserId}, Email: {Email}, TenantId: {TenantId}, Role: {Role}",
+                userId, email, tenantId, role);
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    accessToken = accessToken,
+                    user = new
+                    {
+                        userId = userId.ToString(),
+                        email = email,
+                        firstName = firstName,
+                        lastName = lastName,
+                        tenantId = tenantId.ToString(),
+                        role = role
+                    },
+                    usage = "Use this token in the Authorization header: 'Bearer <token>'"
+                },
+                message = "Development token generated successfully",
+                warning = "⚠️ THIS IS A DEVELOPMENT-ONLY ENDPOINT - DO NOT USE IN PRODUCTION"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating development token");
+            return StatusCode(500, new { success = false, message = "Error generating token" });
+        }
+    }
+}
+
+public class DevTokenRequest
+{
+    public Guid? UserId { get; set; }
+    public string? Email { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public Guid? TenantId { get; set; }
+    public string? TenantName { get; set; }
+    public string? Role { get; set; }
 }
 
 public class RefreshTokenRequest
 {
     [Required]
     public string RefreshToken { get; set; } = string.Empty;
+}
+
+public class UpdateUserRequest
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? ZipCode { get; set; }
 }
 

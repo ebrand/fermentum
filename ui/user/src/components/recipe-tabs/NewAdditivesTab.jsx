@@ -78,7 +78,7 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
             onClick={() => onSelect(additive)}
             className={`p-3 rounded-lg border-2 text-left transition-all ${
               selectedIngredient?.additiveId === additive.additiveId
-                ? 'border-fermentum-500 bg-fermentum-50'
+                ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-200 bg-gray-100'
             }`}
           >
@@ -137,7 +137,7 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Amount
           </label>
           <div className="flex gap-2">
@@ -146,7 +146,7 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
               step="0.1"
               value={formData.amount || ''}
               onChange={(e) => onChange('amount', e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="0.0"
             />
             <div className="w-32">
@@ -197,14 +197,14 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
         {/* Addition Time (for time-sensitive stages) */}
         {(formData.additionStage === 'Boil' || formData.additionStage === 'Whirlpool' || formData.additionStage === 'Mash') && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Time (minutes)
             </label>
             <input
               type="number"
               value={formData.additionTime || ''}
               onChange={(e) => onChange('additionTime', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="e.g., 60"
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -238,7 +238,7 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
 
             {formData.targetParameter && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target Value
                 </label>
                 <input
@@ -246,7 +246,7 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
                   step="0.1"
                   value={formData.targetValue || ''}
                   onChange={(e) => onChange('targetValue', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder={formData.targetParameter === 'pH' ? '5.4' : '0'}
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -274,13 +274,13 @@ const NewAdditivesTab = ({ recipeAdditives = [], onAdditivesChange }) => {
 
         {/* Notes (Optional) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Notes (Optional)
           </label>
           <textarea
             value={formData.notes || ''}
             onChange={(e) => onChange('notes', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             rows="2"
             placeholder="e.g., Add slowly to avoid precipitation"
           />

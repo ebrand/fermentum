@@ -163,6 +163,20 @@ export const authAPI = {
   getCurrentUser: () => api.get('/auth/me'),
   updateUser: (userData) => api.put('/auth/me', userData),
   updatePassword: (passwordData) => api.put('/auth/password', passwordData),
+  uploadProfilePicture: (formData) => {
+    const uploadApi = axios.create({
+      baseURL: getApiUrl(),
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 30000, // Longer timeout for file uploads
+    })
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      uploadApi.defaults.headers.Authorization = `Bearer ${token}`
+    }
+    return uploadApi.post('/auth/upload-picture', formData)
+  },
   getGoogleOAuthUrl: (redirectUrl) => api.get('/auth/google-oauth-url', { params: { redirectUrl } }),
   getAppleOAuthUrl: (redirectUrl) => api.get('/auth/apple-oauth-url', { params: { redirectUrl } }),
   authenticateOAuth: (token) => api.post('/auth/oauth', { token }),
@@ -357,6 +371,27 @@ export const getIngredientData = async (ingredientType, filters = {}) => {
     console.error(`Error fetching ${ingredientType}:`, error)
     throw error
   }
+}
+
+// Helper function to get the base URL for static assets (without /api suffix)
+export const getStaticBaseUrl = () => {
+  const apiUrl = getApiUrl()
+  // Remove /api suffix to get the base URL for static assets
+  return apiUrl.replace('/api', '')
+}
+
+// Helper function to convert relative profile picture URLs to absolute URLs
+export const getProfilePictureUrl = (relativePath) => {
+  if (!relativePath) return null
+
+  // If already absolute, return as-is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath
+  }
+
+  // Convert relative path to absolute using backend base URL
+  const baseUrl = getStaticBaseUrl()
+  return `${baseUrl}${relativePath}`
 }
 
 // Stock and Inventory API endpoints

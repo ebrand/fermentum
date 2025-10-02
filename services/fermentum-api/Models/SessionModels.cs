@@ -11,6 +11,17 @@ namespace Fermentum.Auth.Models
         public string LastName { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+
+        // Profile fields
+        public string? Phone { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? ZipCode { get; set; }
+        public string? ProfilePictureUrl { get; set; }
+        public bool EmailVerified { get; set; }
+        public DateTime? CreatedAt { get; set; }
+
         public List<UserTenantInfo> Tenants { get; set; } = new();
         public string? CurrentTenantId { get; set; }
         public List<UserBreweryInfo> Breweries { get; set; } = new();

@@ -84,7 +84,7 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
             onClick={() => onSelect(hop)}
             className={`p-3 rounded-lg border-2 text-left transition-all ${
               selectedIngredient?.hopId === hop.hopId
-                ? 'border-fermentum-500 bg-fermentum-50'
+                ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-200 bg-gray-100'
             }`}
           >
@@ -133,7 +133,7 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Amount
           </label>
           <div className="flex gap-2">
@@ -142,7 +142,7 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
               step="0.1"
               value={formData.amount || ''}
               onChange={(e) => onChange('amount', e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="0.0"
             />
             <div className="w-24">
@@ -162,14 +162,14 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
 
         {/* Addition Time */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Time
           </label>
           <input
             type="number"
             value={formData.additionTime || 60}
             onChange={(e) => onChange('additionTime', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="60 min"
           />
         </div>
@@ -191,7 +191,7 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
 
         {/* Alpha Acid % */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Alpha Acid %
           </label>
           <input
@@ -199,7 +199,7 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
             step="0.1"
             value={formData.alphaAcid || ''}
             onChange={(e) => onChange('alphaAcid', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder={selectedIngredient.alphaAcidMin && selectedIngredient.alphaAcidMax
               ? `Typical range: ${selectedIngredient.alphaAcidMin}-${selectedIngredient.alphaAcidMax}%`
               : selectedIngredient.alphaAcidMin
@@ -231,13 +231,13 @@ const NewHopsTab = ({ recipeHops = [], onHopsChange }) => {
 
         {/* Description (Optional) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Description (Optional)
           </label>
           <textarea
             value={formData.description || ''}
             onChange={(e) => onChange('description', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             rows="2"
             placeholder="e.g., Citrusy aroma with grapefruit notes"
           />

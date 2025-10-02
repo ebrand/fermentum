@@ -194,6 +194,26 @@ namespace Fermentum.Auth.Services
 
                 _logger.LogInformation("Found {TenantCount} tenants for user {UserId}", userTenants.Count, userId);
 
+                // Also refresh user profile data from database
+                var userRecord = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userGuid);
+                if (userRecord != null)
+                {
+                    _logger.LogInformation("Refreshing user profile data for user {UserId}", userId);
+                    session.Phone = userRecord.Phone;
+                    session.Address = userRecord.Address;
+                    session.City = userRecord.City;
+                    session.State = userRecord.State;
+                    session.ZipCode = userRecord.ZipCode;
+                    session.ProfilePictureUrl = userRecord.ProfilePictureUrl;
+                    session.CreatedAt = userRecord.Created;
+                    // Update name fields in case they changed
+                    session.FirstName = userRecord.FirstName ?? session.FirstName;
+                    session.LastName = userRecord.LastName ?? session.LastName;
+                    session.DisplayName = !string.IsNullOrEmpty(userRecord.FirstName) && !string.IsNullOrEmpty(userRecord.LastName)
+                        ? $"{userRecord.FirstName} {userRecord.LastName}".Trim()
+                        : session.DisplayName;
+                }
+
                 // Update session with fresh tenant data
                 session.Tenants = userTenants;
                 session.LastUpdated = DateTime.UtcNow;
@@ -495,9 +515,17 @@ namespace Fermentum.Auth.Services
                 var correctedUserId = await CreateOrUpdateUserAsync(userId, email, firstName, lastName, stytchUserId);
                 _logger.LogInformation("✅ [SESSION_DEBUG] CreateOrUpdateUserAsync completed. Original: {OriginalUserId}, Corrected: {CorrectedUserId} ({Email})", userId, correctedUserId, email);
 
+                // Fetch full user record to get profile fields
+                var userRecord = await _context.Users.FirstOrDefaultAsync(u => u.UserId == Guid.Parse(correctedUserId));
+                if (userRecord == null)
+                {
+                    _logger.LogError("Failed to fetch user record after creation for {UserId}", correctedUserId);
+                    return null;
+                }
+
                 _logger.LogInformation("🔄 [BREWERY_DEBUG] About to create UserSession object for user: {CorrectedUserId}", correctedUserId);
 
-                // Create a session from JWT claims
+                // Create a session from JWT claims and database profile fields
                 var session = new UserSession
                 {
                     UserId = correctedUserId,
@@ -507,6 +535,15 @@ namespace Fermentum.Auth.Services
                     LastName = lastName,
                     DisplayName = !string.IsNullOrEmpty(displayName) ? displayName : $"{firstName} {lastName}".Trim(),
                     Role = role,
+                    // Profile fields from database
+                    Phone = userRecord.Phone,
+                    Address = userRecord.Address,
+                    City = userRecord.City,
+                    State = userRecord.State,
+                    ZipCode = userRecord.ZipCode,
+                    ProfilePictureUrl = userRecord.ProfilePictureUrl,
+                    EmailVerified = true, // Assume verified if they got a token
+                    CreatedAt = userRecord.Created,
                     Tenants = new List<UserTenantInfo>(),
                     Breweries = new List<UserBreweryInfo>(),
                     AccessToken = token,

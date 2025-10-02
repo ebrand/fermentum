@@ -33,14 +33,14 @@ namespace FermentumApi.Models.Equipment
 
         [MaxLength(50)]
         [Column("Status")]
-        public string Status { get; set; } = "Available";
+        public string? Status { get; set; }
 
         [Column("Capacity")]
         public decimal? Capacity { get; set; }
 
         [MaxLength(20)]
         [Column("CapacityUnit")]
-        public string CapacityUnit { get; set; } = "gallons";
+        public string? CapacityUnit { get; set; }
 
         [Column("WorkingCapacity")]
         public decimal? WorkingCapacity { get; set; }

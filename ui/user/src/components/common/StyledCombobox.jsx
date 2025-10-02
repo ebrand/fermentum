@@ -95,18 +95,18 @@ export default function StyledCombobox({
           ref={inputRef}
           type="text"
           className={`
-            block w-full rounded-md py-2 pr-10 pl-3 text-sm
-            bg-white border
+            w-full px-4 py-2.5 pr-10 rounded-lg shadow-sm
+            bg-white border transition-colors
             ${error
               ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-fermentum-500 focus:ring-fermentum-500'
+              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
             }
             ${disabled
               ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
               : 'text-gray-900'
             }
             placeholder:text-gray-400
-            focus:ring-2 focus:ring-offset-0
+            focus:ring-2
             disabled:bg-gray-50 disabled:text-gray-500
           `}
           value={isOpen ? query : displayValue(value)}
@@ -152,7 +152,7 @@ export default function StyledCombobox({
             ) && (
               <button
                 type="button"
-                className="cursor-pointer select-none relative py-2 pl-3 pr-9 text-gray-900 hover:bg-fermentum-100 hover:text-fermentum-900 w-full text-left"
+                className="cursor-pointer select-none relative py-2 pl-3 pr-9 text-gray-900 hover:bg-blue-50 hover:text-blue-900 w-full text-left"
                 onClick={() => handleOptionSelect({ id: null, name: query })}
                 role="option"
               >
@@ -180,8 +180,8 @@ export default function StyledCombobox({
                     type="button"
                     className={`cursor-pointer select-none relative py-2 pl-3 pr-9 w-full text-left ${
                       isSelected
-                        ? 'bg-fermentum-800 text-white'
-                        : 'text-gray-900 hover:bg-fermentum-100 hover:text-fermentum-900'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-900 hover:bg-blue-50 hover:text-blue-900'
                     }`}
                     onClick={() => handleOptionSelect(option)}
                     role="option"

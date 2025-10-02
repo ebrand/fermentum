@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from '../contexts/SessionContext'
-import { authAPI } from '../utils/api'
+import { authAPI, getProfilePictureUrl } from '../utils/api'
 import DashboardLayout from '../components/DashboardLayout'
 import { FormField, FormButton } from '../components/forms'
 import {
@@ -31,6 +31,8 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [activeTab, setActiveTab] = useState('profile')
+  const [uploadingPicture, setUploadingPicture] = useState(false)
+  const fileInputRef = React.useRef(null)
 
   // Refresh user data when component loads to get latest address fields
   useEffect(() => {
@@ -78,9 +80,10 @@ export default function UserProfilePage() {
       }
 
       await authAPI.updateUser(profileData)
+      await refreshSession() // Refresh session to get updated user data
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to update profile' })
+      setMessage({ type: 'error', text: error.response?.data?.message || error.message || 'Failed to update profile' })
     } finally {
       setLoading(false)
     }
@@ -124,6 +127,40 @@ export default function UserProfilePage() {
     }
   }
 
+  const handleProfilePictureUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setMessage({ type: 'error', text: 'Invalid file type. Only JPG, PNG, and GIF are allowed.' })
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'File size exceeds 5MB limit' })
+      return
+    }
+
+    setUploadingPicture(true)
+    setMessage({ type: '', text: '' })
+
+    try {
+      const formData = new FormData()
+      formData.append('picture', file)
+
+      await authAPI.uploadProfilePicture(formData)
+      await refreshSession() // Refresh to get updated profile picture URL
+      setMessage({ type: 'success', text: 'Profile picture updated successfully!' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to upload profile picture' })
+    } finally {
+      setUploadingPicture(false)
+    }
+  }
+
   const tabs = [
     { id: 'profile', name: 'Profile Information', icon: UserIcon },
     { id: 'security', name: 'Security', icon: KeyIcon }
@@ -150,14 +187,35 @@ export default function UserProfilePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center space-x-6">
             <div className="relative">
-              <div className="w-20 h-20 bg-teal-600 rounded-full flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </span>
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
-                <CameraIcon className="w-4 h-4 text-gray-600" />
+              {user?.profilePictureUrl ? (
+                <img
+                  src={getProfilePictureUrl(user.profilePictureUrl)}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-20 h-20 bg-teal-600 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPicture}
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Upload profile picture"
+              >
+                <CameraIcon className={`w-4 h-4 ${uploadingPicture ? 'text-gray-400' : 'text-gray-600'}`} />
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif"
+                onChange={handleProfilePictureUpload}
+                className="hidden"
+              />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
@@ -360,14 +418,14 @@ export default function UserProfilePage() {
                           <button
                             type="button"
                             onClick={() => {/* TODO: Implement OAuth linking */}}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                           >
                             Connect Google
                           </button>
                           <button
                             type="button"
                             onClick={() => {/* TODO: Implement OAuth linking */}}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                           >
                             Connect Apple
                           </button>

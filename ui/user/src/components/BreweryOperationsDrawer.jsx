@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SlideDrawer from './SlideDrawer'
+import StyledCombobox from './common/StyledCombobox'
 import { useSession } from '../contexts/SessionContext'
 import { useAdvancedNotification } from '../contexts/AdvancedNotificationContext'
 import { usersAPI, invitationsAPI } from '../utils/api'
@@ -33,6 +34,17 @@ const BreweryOperationsDrawer = ({ isOpen, onClose, onOpen }) => {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [invitations, setInvitations] = useState([])
   const [invitationsLoading, setInvitationsLoading] = useState(false)
+
+  // Role options for the combobox
+  const roleOptions = [
+    { id: 'member', name: 'Member' },
+    { id: 'brewer', name: 'Brewer' },
+    { id: 'manager', name: 'Manager' },
+    { id: 'admin', name: 'Admin' }
+  ]
+
+  // Selected role object for combobox
+  const selectedRole = roleOptions.find(role => role.id === inviteRole) || roleOptions[0]
 
   // Get user's subscription plan info
   const planInfo = useMemo(() => {
@@ -438,32 +450,26 @@ const BreweryOperationsDrawer = ({ isOpen, onClose, onOpen }) => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 font-['Menlo','Monaco','monospace'] mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email Address
                       </label>
                       <input
                         type="email"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Menlo','Monaco','monospace'] text-sm"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="user@example.com"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 font-['Menlo','Monaco','monospace'] mb-1">
-                        Role
-                      </label>
-                      <select
-                        value={inviteRole}
-                        onChange={(e) => setInviteRole(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Menlo','Monaco','monospace'] text-sm"
-                      >
-                        <option value="member">Member</option>
-                        <option value="brewer">Brewer</option>
-                        <option value="manager">Manager</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      <StyledCombobox
+                        label="Role"
+                        options={roleOptions}
+                        value={selectedRole}
+                        onChange={(role) => setInviteRole(role.id)}
+                        placeholder="Select role..."
+                      />
                     </div>
 
                     <div className="text-xs text-gray-500 font-['Menlo','Monaco','monospace']">

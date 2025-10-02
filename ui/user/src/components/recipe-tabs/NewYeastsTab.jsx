@@ -93,7 +93,7 @@ const NewYeastsTab = ({ recipeYeasts = [], onYeastsChange }) => {
             onClick={() => onSelect(yeast)}
             className={`p-3 rounded-lg border-2 text-left transition-all ${
               selectedIngredient?.yeastId === yeast.yeastId
-                ? 'border-fermentum-500 bg-fermentum-50'
+                ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-200 bg-gray-100'
             }`}
           >
@@ -157,7 +157,7 @@ const NewYeastsTab = ({ recipeYeasts = [], onYeastsChange }) => {
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Amount
           </label>
           <div className="flex gap-2">
@@ -166,7 +166,7 @@ const NewYeastsTab = ({ recipeYeasts = [], onYeastsChange }) => {
               step="0.1"
               value={formData.amount || 1}
               onChange={(e) => onChange('amount', e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="1"
             />
             <div className="w-32">
@@ -202,7 +202,7 @@ const NewYeastsTab = ({ recipeYeasts = [], onYeastsChange }) => {
         {/* Starter Size (conditional) */}
         {formData.starter && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Starter Size (ml)
             </label>
             <input
@@ -210,7 +210,7 @@ const NewYeastsTab = ({ recipeYeasts = [], onYeastsChange }) => {
               step="50"
               value={formData.starterSize || ''}
               onChange={(e) => onChange('starterSize', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="1000"
             />
           </div>
@@ -218,39 +218,39 @@ const NewYeastsTab = ({ recipeYeasts = [], onYeastsChange }) => {
 
         {/* Manufacturing Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Manufacturing Date (Optional)
           </label>
           <input
             type="date"
             value={formData.manufacturingDate || ''}
             onChange={(e) => onChange('manufacturingDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
 
         {/* Expiration Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Expiration Date (Optional)
           </label>
           <input
             type="date"
             value={formData.expirationDate || ''}
             onChange={(e) => onChange('expirationDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
 
         {/* Notes (Optional) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Notes (Optional)
           </label>
           <textarea
             value={formData.notes || ''}
             onChange={(e) => onChange('notes', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             rows="2"
             placeholder="e.g., Rehydrate before pitching"
           />

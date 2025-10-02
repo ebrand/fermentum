@@ -4,7 +4,9 @@ import { equipmentAPI, equipmentTypeAPI } from '../utils/api'
 import DashboardLayout from '../components/DashboardLayout'
 import Toast from '../components/common/Toast'
 import ConfirmationModal from '../components/common/ConfirmationModal'
-import Modal from '../components/common/Modal'
+import Modal, { ModalFooter } from '../components/common/Modal'
+import StyledCombobox from '../components/common/StyledCombobox'
+import StyledDatePicker from '../components/common/StyledDatePicker'
 
 export default function EquipmentPage() {
   const [equipment, setEquipment] = useState([])
@@ -327,7 +329,12 @@ export default function EquipmentPage() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {group.items.map((equip) => (
-                        <tr key={equip.equipmentId} className="hover:bg-gray-50">
+                        <tr
+                          key={equip.equipmentId}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onDoubleClick={() => handleEditEquipment(equip)}
+                          title="Double-click to edit"
+                        >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{equip.name}</div>
@@ -414,65 +421,61 @@ export default function EquipmentPage() {
         isOpen={showEquipmentModal}
         onClose={() => setShowEquipmentModal(false)}
         title={editingEquipment ? 'Edit Equipment' : 'Add New Equipment'}
+        size="xl"
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
           {/* Basic Information */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Equipment Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Enter equipment name"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Type *</label>
-            <select
-              value={formData.equipmentTypeId}
-              onChange={(e) => setFormData({ ...formData, equipmentTypeId: e.target.value })}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select Type...</option>
-              {equipmentTypes.map(type => (
-                <option key={type.equipmentTypeId} value={type.equipmentTypeId}>{type.name}</option>
-              ))}
-            </select>
+            <StyledCombobox
+              label="Equipment Type *"
+              options={equipmentTypes.map(type => ({ id: type.equipmentTypeId, name: type.name }))}
+              value={formData.equipmentTypeId ? { id: formData.equipmentTypeId, name: equipmentTypes.find(t => t.equipmentTypeId === formData.equipmentTypeId)?.name || '' } : null}
+              onChange={(option) => setFormData({ ...formData, equipmentTypeId: option?.id || '' })}
+              placeholder="Select Type..."
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+              placeholder="Add a description..."
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                {statusOptions.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
+              <StyledCombobox
+                label="Status"
+                options={statusOptions.map(status => ({ id: status, name: status }))}
+                value={{ id: formData.status, name: formData.status }}
+                onChange={(option) => setFormData({ ...formData, status: option.name })}
+                placeholder="Select Status"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Brewery location"
               />
             </div>
           </div>
@@ -480,151 +483,136 @@ export default function EquipmentPage() {
           {/* Capacity Information */}
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.capacity}
                 onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="0.00"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-              <select
-                value={formData.capacityUnit}
-                onChange={(e) => setFormData({ ...formData, capacityUnit: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                {capacityUnits.map(unit => (
-                  <option key={unit} value={unit}>{unit}</option>
-                ))}
-              </select>
+              <StyledCombobox
+                label="Unit"
+                options={capacityUnits.map(unit => ({ id: unit, name: unit }))}
+                value={{ id: formData.capacityUnit, name: formData.capacityUnit }}
+                onChange={(option) => setFormData({ ...formData, capacityUnit: option.name })}
+                placeholder="Unit"
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Working Capacity</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Working Capacity</label>
             <input
               type="number"
               step="0.01"
               value={formData.workingCapacity}
               onChange={(e) => setFormData({ ...formData, workingCapacity: e.target.value })}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="0.00"
             />
           </div>
 
           {/* Equipment Details */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Manufacturer</label>
               <input
                 type="text"
                 value={formData.manufacturer}
                 onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Enter manufacturer"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Model</label>
               <input
                 type="text"
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Enter model"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
             <input
               type="text"
               value={formData.serialNumber}
               onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Enter serial number"
             />
           </div>
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
-              <input
-                type="date"
-                value={formData.purchaseDate}
-                onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Warranty Expiration</label>
-              <input
-                type="date"
-                value={formData.warrantyExpiration}
-                onChange={(e) => setFormData({ ...formData, warrantyExpiration: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+            <StyledDatePicker
+              label="Purchase Date"
+              value={formData.purchaseDate}
+              onChange={(date) => setFormData({ ...formData, purchaseDate: date })}
+              placeholder="Select purchase date..."
+            />
+            <StyledDatePicker
+              label="Warranty Expiration"
+              value={formData.warrantyExpiration}
+              onChange={(date) => setFormData({ ...formData, warrantyExpiration: date })}
+              placeholder="Select warranty expiration..."
+            />
           </div>
 
           {/* Maintenance */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Maintenance</label>
-              <input
-                type="date"
-                value={formData.lastMaintenanceDate}
-                onChange={(e) => setFormData({ ...formData, lastMaintenanceDate: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Next Maintenance</label>
-              <input
-                type="date"
-                value={formData.nextMaintenanceDate}
-                onChange={(e) => setFormData({ ...formData, nextMaintenanceDate: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+            <StyledDatePicker
+              label="Last Maintenance"
+              value={formData.lastMaintenanceDate}
+              onChange={(date) => setFormData({ ...formData, lastMaintenanceDate: date })}
+              placeholder="Select last maintenance date..."
+            />
+            <StyledDatePicker
+              label="Next Maintenance"
+              value={formData.nextMaintenanceDate}
+              onChange={(date) => setFormData({ ...formData, nextMaintenanceDate: date })}
+              placeholder="Select next maintenance date..."
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance Interval (days)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Maintenance Interval (days)</label>
             <input
               type="number"
               value={formData.maintenanceIntervalDays}
               onChange={(e) => setFormData({ ...formData, maintenanceIntervalDays: e.target.value })}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="e.g., 30"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Maintenance Notes</label>
             <textarea
               value={formData.maintenanceNotes}
               onChange={(e) => setFormData({ ...formData, maintenanceNotes: e.target.value })}
               rows={3}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+              placeholder="Enter maintenance notes and history"
             />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={() => setShowEquipmentModal(false)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSaveEquipment}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-          >
-            {editingEquipment ? 'Update Equipment' : 'Create Equipment'}
-          </button>
-        </div>
+        <ModalFooter
+          primaryAction={handleSaveEquipment}
+          secondaryAction={() => setShowEquipmentModal(false)}
+          primaryLabel={editingEquipment ? 'Update Equipment' : 'Create Equipment'}
+          secondaryLabel="Cancel"
+          primaryVariant="primary"
+        />
       </Modal>
 
       {/* Toast Notification */}

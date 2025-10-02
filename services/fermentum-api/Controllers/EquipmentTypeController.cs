@@ -61,7 +61,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipmentTypes = await _context.EquipmentTypes
                     .Where(et => et.TenantId == tenantId.Value)
@@ -101,7 +101,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipmentType = await _context.EquipmentTypes
                     .Where(et => et.EquipmentTypeId == id && et.TenantId == tenantId.Value)
@@ -151,7 +151,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "User ID not found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipmentType = new EquipmentType
                 {
@@ -210,7 +210,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "User ID not found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipmentType = await _context.EquipmentTypes
                     .FirstOrDefaultAsync(et => et.EquipmentTypeId == id && et.TenantId == tenantId.Value);
@@ -262,7 +262,7 @@ namespace Fermentum.Auth.Controllers
                     return Unauthorized(new { success = false, message = "No active tenant found" });
                 }
 
-                await _context.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId.Value}'");
+                await _context.Database.ExecuteSqlRawAsync($"SET app.current_tenant_id = '{tenantId.Value}'");
 
                 var equipmentType = await _context.EquipmentTypes
                     .FirstOrDefaultAsync(et => et.EquipmentTypeId == id && et.TenantId == tenantId.Value);

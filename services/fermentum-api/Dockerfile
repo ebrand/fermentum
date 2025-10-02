@@ -35,11 +35,11 @@ WORKDIR /src
 RUN echo "cache_buster=${CACHE_BUSTER}"
 
 # Copy solution and project files first for better layer caching
-COPY ["FermentumApi.csproj", "./"]
+COPY ["services/fermentum-api/FermentumApi.csproj", "./"]
 RUN dotnet restore "FermentumApi.csproj"
 
 # Copy source code (this layer busts when code changes)
-COPY . .
+COPY services/fermentum-api/ .
 WORKDIR "/src"
 
 # Build with version info
@@ -57,6 +57,9 @@ RUN dotnet publish "FermentumApi.csproj" -c Release -o /app/publish \
 
 FROM base AS final
 WORKDIR /app
+
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Add version labels for identification
 LABEL org.opencontainers.image.revision=${GIT_SHA}
@@ -92,8 +95,8 @@ ENV QuickBooksOnline__RedirectUri="https://fermentum-api-production.up.railway.a
 
 COPY --from=publish /app/publish .
 
-# Health check - use PORT env var if set, default to 8080
+# Health check - API listens on port 80 inside container
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
+  CMD curl -f http://localhost:80/health || exit 1
 
 ENTRYPOINT ["dotnet", "FermentumApi.dll"]

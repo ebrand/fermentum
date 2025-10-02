@@ -164,7 +164,7 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Amount
           </label>
           <div className="flex gap-2">
@@ -173,7 +173,7 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
               step="0.1"
               value={formData.amount || ''}
               onChange={(e) => onChange('amount', e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="0.0"
             />
             <div className="w-24">
@@ -194,7 +194,7 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
 
         {/* Percentage */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Percentage of Grain Bill (%)
           </label>
           <input
@@ -204,14 +204,14 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
             max="100"
             value={formData.percentage || ''}
             onChange={(e) => onChange('percentage', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="0.0"
           />
         </div>
 
         {/* Lovibond (Color) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Lovibond (Color °L)
           </label>
           <input
@@ -219,7 +219,7 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
             step="0.1"
             value={formData.lovibond || selectedIngredient.color || ''}
             onChange={(e) => onChange('lovibond', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder={selectedIngredient.color?.toString() || '0'}
           />
           <p className="mt-1 text-xs text-gray-500">Default from grain: {selectedIngredient.color}°L</p>
@@ -227,7 +227,7 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
 
         {/* Extract Potential */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Extract Potential (PPG)
           </label>
           <input
@@ -235,7 +235,7 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
             step="0.001"
             value={formData.extractPotential || selectedIngredient.potential || ''}
             onChange={(e) => onChange('extractPotential', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder={selectedIngredient.potential?.toString() || '1.000'}
           />
           <p className="mt-1 text-xs text-gray-500">Default from grain: {selectedIngredient.potential}</p>
@@ -257,13 +257,13 @@ const NewGrainsTab = ({ recipeGrains = [], onGrainsChange }) => {
 
         {/* Notes (Optional) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Notes (Optional)
           </label>
           <textarea
             value={formData.notes || ''}
             onChange={(e) => onChange('notes', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             rows="2"
             placeholder="e.g., Adjust mash pH, steep at 155°F"
           />

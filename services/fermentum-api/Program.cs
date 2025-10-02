@@ -117,6 +117,7 @@ builder.Services.AddHttpClient<IStytchService, StytchService>();
 
 // JWT Configuration
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? throw new InvalidOperationException("JWT configuration is required");
+
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -292,6 +293,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // Standard request logging is built into ASP.NET Core
+
+// Configure static file serving for profile pictures
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
+    RequestPath = "/uploads"
+});
 
 app.UseCors("FermentumPolicy");
 

@@ -10,25 +10,30 @@ export default function FormField({
   required = false,
   error,
   help,
+  helperText,
+  disabled = false,
+  icon: Icon,
   className = '',
   children,
   ...props
 }) {
   const baseInputClasses = `
-    w-full px-4 py-4
-    border border-gray-200
-    rounded-xl
+    w-full px-4 py-2.5
+    border ${error ? 'border-red-300' : 'border-gray-300'}
+    rounded-lg shadow-sm
     text-gray-900 placeholder-gray-400
-    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+    focus:outline-none focus:ring-2 ${error ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-blue-500 focus:border-blue-500'}
     transition-colors
-    ${error ? 'border-red-300 focus:ring-red-500' : ''}
+    ${disabled ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}
+    ${type === 'textarea' ? 'resize-none' : ''}
     ${className}
   `.trim()
 
   return (
-    <div className="space-y-2">
+    <div>
       {label && (
-        <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-2">
+          {Icon && <Icon className="h-4 w-4 inline mr-1" />}
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -44,6 +49,7 @@ export default function FormField({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
+          disabled={disabled}
           className={baseInputClasses}
           {...props}
         />
@@ -56,17 +62,18 @@ export default function FormField({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
+          disabled={disabled}
           className={baseInputClasses}
           {...props}
         />
       )}
 
-      {help && (
-        <p className="text-xs text-gray-500">{help}</p>
+      {(help || helperText) && (
+        <p className="mt-1 text-xs text-gray-500">{help || helperText}</p>
       )}
 
       {error && (
-        <p className="text-xs text-red-600">{error}</p>
+        <p className="mt-1 text-xs text-red-600">{error}</p>
       )}
     </div>
   )

@@ -496,7 +496,16 @@ export function SessionProvider({ children }) {
     lastName: session.lastName,
     displayName: session.displayName,
     role: session.role,
-    currentEmployeeId: session.currentEmployeeId
+    currentEmployeeId: session.currentEmployeeId,
+    // Profile fields
+    phone: session.phone,
+    address: session.address,
+    city: session.city,
+    state: session.state,
+    zipCode: session.zipCode,
+    profilePictureUrl: session.profilePictureUrl,
+    emailVerified: session.emailVerified,
+    createdAt: session.createdAt
   } : null
 
   const currentTenant = session?.currentTenantId

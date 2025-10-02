@@ -68,7 +68,7 @@ export default function ComboboxExamplePage() {
               />
             </div>
             {selectedEmployee && (
-              <div className="mt-4 p-3 bg-fermentum-50 rounded border border-fermentum-200">
+              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
                 <p><strong>Assigned to:</strong> {selectedEmployee.name}</p>
                 <p><strong>Employee ID:</strong> {selectedEmployee.id}</p>
               </div>
