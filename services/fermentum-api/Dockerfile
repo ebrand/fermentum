@@ -35,11 +35,11 @@ WORKDIR /src
 RUN echo "cache_buster=${CACHE_BUSTER}"
 
 # Copy solution and project files first for better layer caching
-COPY ["services/fermentum-api/FermentumApi.csproj", "./"]
+COPY ["FermentumApi.csproj", "./"]
 RUN dotnet restore "FermentumApi.csproj"
 
 # Copy source code (this layer busts when code changes)
-COPY services/fermentum-api/ .
+COPY . .
 WORKDIR "/src"
 
 # Build with version info
@@ -71,32 +71,44 @@ ENV APP_VERSION=${GIT_SHA}
 ENV BUILD_TIME=${BUILD_TIME}
 
 # Set runtime environment variables
-# CRITICAL: Railway's variable system is completely broken - it cannot pass variables
-# through runtime injection, ${{}} substitution, or Docker ARG mechanism.
-# As a workaround, we hardcode all values directly here.
-# NOTE: These are test/development credentials only.
+# IMPORTANT: These values will be overridden by Railway environment variables
+# The values below are fallbacks for local Docker builds only
+# In Railway, set these as service variables for security
+
 ENV ASPNETCORE_ENVIRONMENT="Production"
 ENV ASPNETCORE_URLS="http://+:${PORT:-8080}"
-ENV ConnectionStrings__DefaultConnection="Host=postgres.railway.internal;Port=5432;Database=railway;Username=postgres;Password=WzDKXNheaetFpzbsEhMoCpzWASzyPFtH"
-ENV ConnectionStrings__Redis="redis.railway.internal:6379,password=lSmKXiFBTOIsbtgwvHudKCNIAJBoNACn"
-ENV Stytch__ProjectId="project-test-602a83cb-068f-4dd4-a473-0bb708335ee6"
-ENV Stytch__ProjectSecret="secret-test-orObSrhvLvkqC2IMClzRxug7FICBkkqKH0g="
-ENV Stytch__PublicToken="public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb"
+
+# Database connection (set in Railway as environment variable)
+ENV ConnectionStrings__DefaultConnection=""
+
+# Redis connection (set in Railway as environment variable)
+ENV ConnectionStrings__Redis=""
+
+# Stytch authentication (set in Railway as environment variable)
+ENV Stytch__ProjectId=""
+ENV Stytch__ProjectSecret=""
+ENV Stytch__PublicToken=""
+
+# JWT configuration (set in Railway as environment variable with strong secret)
 ENV Jwt__Issuer="https://auth.fermentum.dev"
 ENV Jwt__Audience="https://fermentum.dev"
-ENV Jwt__SecretKey="3hk4bie7ftgw34iub4qiyrg863trf9283hruiq3griyfqgoirhu3qrq"
+ENV Jwt__SecretKey=""
 ENV Jwt__ExpiryMinutes="60"
-ENV Stripe__SecretKey="sk_test_51S9841S4Vkg3juZcdlrb3ir0DUZgYKQQTJkmt0Vj9aGWaQq2Me6VXqCBhgWGm8IKVcNQ4JwNQyu8LBmfDIR35AJV00nfVOyx8t"
-ENV Stripe__PublishableKey="pk_test_51S9841S4Vkg3juZc0uHOaNnNBJrFfyhetvmmIoRbCEdxnnwKnCZTtQAMg9Rq38kLVq71TqSt1d0TtXBTOOw1qfOw00vYAcStzo"
-ENV QuickBooksOnline__ClientId="ABz2UqE4t2pzruG4EM4bw4mSeKH5NGBB6kz0DEV1UPRbBTSHB8"
-ENV QuickBooksOnline__ClientSecret="RhrAUSQ4MEPUJoYjBwgjEVM5Pb45mloPoBQZqGKU"
+
+# Stripe payment processing (set in Railway as environment variable)
+ENV Stripe__SecretKey=""
+ENV Stripe__PublishableKey=""
+
+# QuickBooks integration (set in Railway as environment variable)
+ENV QuickBooksOnline__ClientId=""
+ENV QuickBooksOnline__ClientSecret=""
 ENV QuickBooksOnline__Environment="sandbox"
-ENV QuickBooksOnline__RedirectUri="https://fermentum-api-production.up.railway.app/api/quickbooks/callback"
+ENV QuickBooksOnline__RedirectUri=""
 
 COPY --from=publish /app/publish .
 
-# Health check - API listens on port 80 inside container
+# Health check - API listens on the PORT variable (Railway sets this dynamically)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:80/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
 ENTRYPOINT ["dotnet", "FermentumApi.dll"]
