@@ -294,6 +294,9 @@ if (app.Environment.IsDevelopment())
 
 // Standard request logging is built into ASP.NET Core
 
+// CORS must be before authentication and static files
+app.UseCors("FermentumPolicy");
+
 // Configure static file serving for profile pictures
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -301,8 +304,6 @@ app.UseStaticFiles(new StaticFileOptions
         Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
     RequestPath = "/uploads"
 });
-
-app.UseCors("FermentumPolicy");
 
 app.UseAuthentication();
 // app.UseTenantSchema(); // Replaced with SetSearchPathInterceptor
