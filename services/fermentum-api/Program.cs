@@ -299,12 +299,19 @@ if (app.Environment.IsDevelopment())
 // CORS must be before authentication and static files
 app.UseCors("FermentumPolicy");
 
-// Configure static file serving for profile pictures
+// Configure static file serving for profile pictures with CORS
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
         Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
-    RequestPath = "/uploads"
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        // Add CORS headers to static file responses
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type");
+    }
 });
 
 app.UseAuthentication();
