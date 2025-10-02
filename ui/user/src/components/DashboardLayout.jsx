@@ -386,7 +386,7 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
 
         {/* Logo Section */}
         <div className="bg-fermentum-800 flex items-center justify-center h-16 overflow-x-hidden overflow-y-hidden">
-          <GrainIcon className="h-12 w-12 text-white -ml-6" />
+          <GrainIcon className="h-12 w-12 text-gray-400 -ml-6" />
           <span className="-ml-2 text-3xl font-bold text-white">Fermentum</span>
         </div>
 
