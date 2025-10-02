@@ -389,7 +389,17 @@ export const getProfilePictureUrl = (relativePath) => {
     return relativePath
   }
 
-  // Convert relative path to absolute using backend base URL
+  // Profile pictures are now served via API endpoint
+  // If path starts with /api/, use the API base URL (includes /api)
+  // Otherwise, use the static base URL (excludes /api) for legacy paths
+  if (relativePath.startsWith('/api/')) {
+    const apiUrl = getApiUrl()
+    // API URL already includes /api, so strip the leading /api from relativePath
+    const pathWithoutApiPrefix = relativePath.replace(/^\/api/, '')
+    return `${apiUrl}${pathWithoutApiPrefix}`
+  }
+
+  // Legacy static file paths (for backwards compatibility)
   const baseUrl = getStaticBaseUrl()
   return `${baseUrl}${relativePath}`
 }

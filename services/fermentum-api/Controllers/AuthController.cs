@@ -537,8 +537,8 @@ public class AuthController : ControllerBase
                 await picture.CopyToAsync(stream);
             }
 
-            // Update user's profile picture URL
-            var pictureUrl = $"/uploads/profile-pictures/{fileName}";
+            // Update user's profile picture URL - use API endpoint
+            var pictureUrl = $"/api/auth/profile-picture/{fileName}";
             user.ProfilePictureUrl = pictureUrl;
             user.Updated = DateTime.UtcNow;
             user.UpdatedBy = userId;
@@ -558,6 +558,53 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error uploading profile picture");
             return StatusCode(500, new { success = false, message = "Error uploading profile picture" });
+        }
+    }
+
+    /// <summary>
+    /// Get profile picture by filename - streams the image file from storage
+    /// </summary>
+    [HttpGet("profile-picture/{filename}")]
+    [AllowAnonymous] // Allow public access to profile pictures
+    public async Task<IActionResult> GetProfilePicture(string filename)
+    {
+        try
+        {
+            // Sanitize filename to prevent directory traversal attacks
+            var sanitizedFilename = Path.GetFileName(filename);
+
+            // Build file path
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "profile-pictures");
+            var filePath = Path.Combine(uploadsPath, sanitizedFilename);
+
+            // Check if file exists
+            if (!System.IO.File.Exists(filePath))
+            {
+                _logger.LogWarning("Profile picture not found: {Filename}", sanitizedFilename);
+                return NotFound(new { success = false, message = "Profile picture not found" });
+            }
+
+            // Determine content type based on extension
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                _ => "application/octet-stream"
+            };
+
+            // Read file and return as stream
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+            _logger.LogInformation("Serving profile picture: {Filename}", sanitizedFilename);
+
+            return File(fileBytes, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving profile picture: {Filename}", filename);
+            return StatusCode(500, new { success = false, message = "Error retrieving profile picture" });
         }
     }
 
