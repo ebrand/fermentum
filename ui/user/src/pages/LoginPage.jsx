@@ -53,10 +53,27 @@ export default function LoginPage() {
 
     try {
       const redirectUrl = `${window.location.origin}/oauth/callback`
+      console.log('🔐 Requesting Google OAuth URL with redirect:', redirectUrl)
+
       const response = await authAPI.getGoogleOAuthUrl(redirectUrl)
+      console.log('🔐 Google OAuth response:', response)
+      console.log('🔐 OAuth URL:', response.data)
+
+      // Extract the OAuth URL from the response
+      const oauthUrl = response.data?.data || response.data
+
+      if (!oauthUrl || typeof oauthUrl !== 'string' || oauthUrl === 'undefined') {
+        console.error('❌ Invalid OAuth URL received:', oauthUrl)
+        setError('Invalid OAuth URL received from server')
+        setLoading(false)
+        return
+      }
+
+      console.log('✅ Redirecting to Google OAuth:', oauthUrl)
       // Redirect to Google OAuth URL
-      window.location.href = response.data.data
+      window.location.href = oauthUrl
     } catch (error) {
+      console.error('❌ Google OAuth error:', error)
       setError(error.response?.data?.message || 'Failed to start Google OAuth')
       setLoading(false)
     }
@@ -68,10 +85,27 @@ export default function LoginPage() {
 
     try {
       const redirectUrl = `${window.location.origin}/oauth/callback`
+      console.log('🍎 Requesting Apple OAuth URL with redirect:', redirectUrl)
+
       const response = await authAPI.getAppleOAuthUrl(redirectUrl)
+      console.log('🍎 Apple OAuth response:', response)
+      console.log('🍎 OAuth URL:', response.data)
+
+      // Extract the OAuth URL from the response
+      const oauthUrl = response.data?.data || response.data
+
+      if (!oauthUrl || typeof oauthUrl !== 'string' || oauthUrl === 'undefined') {
+        console.error('❌ Invalid OAuth URL received:', oauthUrl)
+        setError('Invalid OAuth URL received from server')
+        setLoading(false)
+        return
+      }
+
+      console.log('✅ Redirecting to Apple OAuth:', oauthUrl)
       // Redirect to Apple OAuth URL
-      window.location.href = response.data.data
+      window.location.href = oauthUrl
     } catch (error) {
+      console.error('❌ Apple OAuth error:', error)
       setError(error.response?.data?.message || 'Failed to start Apple OAuth')
       setLoading(false)
     }
