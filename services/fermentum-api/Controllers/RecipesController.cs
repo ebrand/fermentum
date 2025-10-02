@@ -64,7 +64,7 @@ namespace Fermentum.Auth.Controllers
                     .Include(r => r.Hops).ThenInclude(h => h.Hop)
                     .Include(r => r.Yeasts).ThenInclude(y => y.Yeast)
                     .Include(r => r.Additives).ThenInclude(a => a.Additive)
-                    .Include(r => r.Steps)
+                    .Include(r => r.Steps).ThenInclude(s => s.EquipmentType)
                     .Where(r => r.TenantId == tenantId.Value);
 
                 if (!includeInactive)
@@ -187,7 +187,12 @@ namespace Fermentum.Auth.Controllers
                         Description = s.Description,
                         Instructions = s.Instructions,
                         IsOptional = s.IsOptional,
-                        AlertBefore = s.AlertBefore
+                        AlertBefore = s.AlertBefore,
+                        RequiresEquipment = s.RequiresEquipment,
+                        EquipmentTypeId = s.EquipmentTypeId,
+                        EquipmentTypeName = s.EquipmentType != null ? s.EquipmentType.Name : null,
+                        EquipmentCapacityMin = s.EquipmentCapacityMin,
+                        EquipmentCapacityUnit = s.EquipmentCapacityUnit
                     }).OrderBy(s => s.StepNumber).ToList()
                 }).ToList();
 
@@ -472,7 +477,7 @@ namespace Fermentum.Auth.Controllers
                     .Include(r => r.Hops).ThenInclude(h => h.Hop)
                     .Include(r => r.Yeasts).ThenInclude(y => y.Yeast)
                     .Include(r => r.Additives).ThenInclude(a => a.Additive)
-                    .Include(r => r.Steps)
+                    .Include(r => r.Steps).ThenInclude(s => s.EquipmentType)
                     // Commented out - RecipeMashStep table doesn't exist, using RecipeStep instead
                     // .Include(r => r.MashSteps)
                     .Where(r => r.RecipeId == id && r.TenantId == tenantId.Value)
@@ -591,7 +596,12 @@ namespace Fermentum.Auth.Controllers
                         Description = s.Description,
                         Instructions = s.Instructions,
                         IsOptional = s.IsOptional,
-                        AlertBefore = s.AlertBefore
+                        AlertBefore = s.AlertBefore,
+                        RequiresEquipment = s.RequiresEquipment,
+                        EquipmentTypeId = s.EquipmentTypeId,
+                        EquipmentTypeName = s.EquipmentType != null ? s.EquipmentType.Name : null,
+                        EquipmentCapacityMin = s.EquipmentCapacityMin,
+                        EquipmentCapacityUnit = s.EquipmentCapacityUnit
                     }).OrderBy(s => s.StepNumber).ToList()
                     // Commented out - RecipeMashStep table doesn't exist, using RecipeStep instead
                     /*

@@ -29,6 +29,7 @@ import RecipesPage from './pages/RecipesPage'
 import RecipeBuilderPage from './pages/RecipeBuilderPage'
 import BeerStylesPage from './pages/BeerStylesPage'
 import StockInventoryPage from './pages/StockInventoryPage'
+import EquipmentPage from './pages/EquipmentPage'
 
 // Protected Route component
 function ProtectedRoute({ children }) {
@@ -241,6 +242,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <StockInventoryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/equipment"
+        element={
+          <ProtectedRoute>
+            <EquipmentPage />
           </ProtectedRoute>
         }
       />

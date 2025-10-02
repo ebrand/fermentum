@@ -28,6 +28,10 @@ import {
   DocumentChartBarIcon
 } from '@heroicons/react/24/outline'
 
+import {
+  GrainIcon
+} from './Icons'
+
 const navigation = [
   {
     name: 'Dashboard',
@@ -381,8 +385,9 @@ export default function DashboardLayout({ children, title, subtitle, activeTab =
       <div className="flex flex-col w-64 bg-white shadow-sm border-r border-gray-200">
 
         {/* Logo Section */}
-        <div className="bg-fermentum-800 items-center justify-center h-16 overflow-x-hidden overflow-y-hidden">
-          <img src="/fermentum-logo.png" className="mt-[25px]" />
+        <div className="bg-fermentum-800 flex items-center justify-center h-16 overflow-x-hidden overflow-y-hidden">
+          <GrainIcon className="h-12 w-12 text-white -ml-6" />
+          <span className="-ml-2 text-3xl font-bold text-white">Fermentum</span>
         </div>
 
         {/* Navigation */}

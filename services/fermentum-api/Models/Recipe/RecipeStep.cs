@@ -69,6 +69,19 @@ namespace FermentumApi.Models
         [Column("AlertBefore")]
         public int? AlertBefore { get; set; } // Minutes before step to alert brewer
 
+        [Column("RequiresEquipment")]
+        public bool RequiresEquipment { get; set; } = false;
+
+        [Column("EquipmentTypeId")]
+        public Guid? EquipmentTypeId { get; set; }
+
+        [Column("EquipmentCapacityMin", TypeName = "decimal(10,2)")]
+        public decimal? EquipmentCapacityMin { get; set; }
+
+        [MaxLength(20)]
+        [Column("EquipmentCapacityUnit")]
+        public string? EquipmentCapacityUnit { get; set; }
+
         [Column("Created")]
         public DateTime Created { get; set; }
 
@@ -84,5 +97,8 @@ namespace FermentumApi.Models
         // Navigation properties
         [ForeignKey("RecipeId")]
         public virtual Recipe? Recipe { get; set; }
+
+        [ForeignKey("EquipmentTypeId")]
+        public virtual Equipment.EquipmentType? EquipmentType { get; set; }
     }
 }

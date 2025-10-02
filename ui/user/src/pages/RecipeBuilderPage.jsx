@@ -15,6 +15,7 @@ import TabSection from '../components/recipe-tabs/TabSection'
 import TabFooter from '../components/recipe-tabs/TabFooter'
 import DashboardLayout from '../components/DashboardLayout'
 import StandardDropdown from '../components/common/StandardDropdown'
+import StyledCombobox from '../components/common/StyledCombobox'
 import Toast from '../components/common/Toast'
 import ConfirmationModal from '../components/common/ConfirmationModal'
 
@@ -66,6 +67,13 @@ export default function RecipeBuilderPage() {
 
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [manualOverrides, setManualOverrides] = useState({
+    estimatedOG: false,
+    estimatedFG: false,
+    estimatedABV: false,
+    estimatedIBU: false,
+    estimatedSRM: false
+  })
 
   const [recipeData, setRecipeData] = useState({
     recipeId: null,
@@ -97,6 +105,204 @@ export default function RecipeBuilderPage() {
     { name: 'Recipe Steps', icon: StairsIcon, badge: recipeData.steps?.length || 0 },
     { name: 'Summary', icon: ChartBarIcon }
   ]
+
+  // Brewing calculation utilities
+  const calculateOG = (grains, efficiency, batchSize, batchSizeUnit) => {
+    if (!grains || grains.length === 0 || !batchSize || !efficiency) return null
+
+    // Convert batch size to gallons if needed
+    let batchGallons = batchSize
+    if (batchSizeUnit === 'liters') {
+      batchGallons = batchSize * 0.264172 // liters to gallons
+    } else if (batchSizeUnit === 'barrels') {
+      batchGallons = batchSize * 31 // barrels to gallons
+    }
+
+    // Sum gravity points from all grains
+    let totalGravityPoints = 0
+    grains.forEach(grain => {
+      if (grain.amount && grain.potential) {
+        // Convert potential (e.g., 1.037) to gravity points (37)
+        const grainPoints = (grain.potential - 1) * 1000
+        // Amount in pounds
+        let amountLbs = grain.amount
+        if (grain.unit === 'oz') amountLbs = grain.amount / 16
+        if (grain.unit === 'g') amountLbs = grain.amount * 0.00220462
+        if (grain.unit === 'kg') amountLbs = grain.amount * 2.20462
+
+        totalGravityPoints += grainPoints * amountLbs * (efficiency / 100)
+      }
+    })
+
+    // OG = (total gravity points / batch size in gallons) / 1000 + 1
+    const og = (totalGravityPoints / batchGallons) / 1000 + 1
+    return parseFloat(og.toFixed(3))
+  }
+
+  const calculateFG = (og, yeastAttenuation) => {
+    if (!og || !yeastAttenuation) return null
+
+    // FG = OG - ((OG - 1) * attenuation)
+    const fg = og - ((og - 1) * (yeastAttenuation / 100))
+    return parseFloat(fg.toFixed(3))
+  }
+
+  const calculateABV = (og, fg) => {
+    if (!og || !fg) return null
+
+    // Standard ABV formula: (OG - FG) * 131.25
+    const abv = (og - fg) * 131.25
+    return parseFloat(abv.toFixed(1))
+  }
+
+  const calculateIBU = (hops, batchSize, batchSizeUnit, og, boilTime) => {
+    if (!hops || hops.length === 0 || !batchSize || !og) return null
+
+    // Convert batch size to gallons
+    let batchGallons = batchSize
+    if (batchSizeUnit === 'liters') {
+      batchGallons = batchSize * 0.264172
+    } else if (batchSizeUnit === 'barrels') {
+      batchGallons = batchSize * 31
+    }
+
+    // Calculate IBU using Tinseth formula
+    let totalIBU = 0
+    hops.forEach(hop => {
+      if (hop.amount && hop.alphaAcid && hop.additionTime !== undefined) {
+        // Amount in ounces
+        let amountOz = hop.amount
+        if (hop.unit === 'g') amountOz = hop.amount * 0.035274
+        if (hop.unit === 'lbs') amountOz = hop.amount * 16
+
+        // Bigness factor = 1.65 * 0.000125^(OG - 1)
+        const bignessFactor = 1.65 * Math.pow(0.000125, og - 1)
+
+        // Boil time factor = (1 - e^(-0.04 * time)) / 4.15
+        const boilTimeFactor = (1 - Math.exp(-0.04 * hop.additionTime)) / 4.15
+
+        // Utilization = bigness factor * boil time factor
+        const utilization = bignessFactor * boilTimeFactor
+
+        // IBU = (AAU * utilization * 75) / batch size
+        const aau = amountOz * (hop.alphaAcid / 100)
+        const hopIBU = (aau * utilization * 75) / batchGallons
+
+        totalIBU += hopIBU
+      }
+    })
+
+    return Math.round(totalIBU)
+  }
+
+  const calculateSRM = (grains, batchSize, batchSizeUnit) => {
+    if (!grains || grains.length === 0 || !batchSize) return null
+
+    // Convert batch size to gallons
+    let batchGallons = batchSize
+    if (batchSizeUnit === 'liters') {
+      batchGallons = batchSize * 0.264172
+    } else if (batchSizeUnit === 'barrels') {
+      batchGallons = batchSize * 31
+    }
+
+    // Calculate MCU (Malt Color Units)
+    let mcu = 0
+    grains.forEach(grain => {
+      if (grain.amount && grain.lovibond) {
+        // Amount in pounds
+        let amountLbs = grain.amount
+        if (grain.unit === 'oz') amountLbs = grain.amount / 16
+        if (grain.unit === 'g') amountLbs = grain.amount * 0.00220462
+        if (grain.unit === 'kg') amountLbs = grain.amount * 2.20462
+
+        mcu += (amountLbs * grain.lovibond) / batchGallons
+      }
+    })
+
+    // Morey equation: SRM = 1.4922 * (MCU ^ 0.6859)
+    const srm = 1.4922 * Math.pow(mcu, 0.6859)
+    return parseFloat(srm.toFixed(1))
+  }
+
+  // Auto-calculate brewing metrics when ingredients or settings change
+  useEffect(() => {
+    const updates = {}
+
+    // Calculate OG if not manually overridden
+    if (!manualOverrides.estimatedOG) {
+      const og = calculateOG(
+        recipeData.grains,
+        recipeData.efficiency,
+        recipeData.batchSize,
+        recipeData.batchSizeUnit
+      )
+      if (og !== null && og !== recipeData.estimatedOG) {
+        updates.estimatedOG = og
+      }
+    }
+
+    // Calculate FG if not manually overridden (needs yeast attenuation)
+    if (!manualOverrides.estimatedFG && recipeData.estimatedOG && recipeData.yeasts?.length > 0) {
+      const yeast = recipeData.yeasts[0] // Use first yeast
+      if (yeast.attenuation) {
+        const fg = calculateFG(recipeData.estimatedOG, yeast.attenuation)
+        if (fg !== null && fg !== recipeData.estimatedFG) {
+          updates.estimatedFG = fg
+        }
+      }
+    }
+
+    // Calculate ABV if not manually overridden
+    if (!manualOverrides.estimatedABV && recipeData.estimatedOG && recipeData.estimatedFG) {
+      const abv = calculateABV(recipeData.estimatedOG, recipeData.estimatedFG)
+      if (abv !== null && abv !== recipeData.estimatedABV) {
+        updates.estimatedABV = abv
+      }
+    }
+
+    // Calculate IBU if not manually overridden
+    if (!manualOverrides.estimatedIBU && recipeData.estimatedOG) {
+      const ibu = calculateIBU(
+        recipeData.hops,
+        recipeData.batchSize,
+        recipeData.batchSizeUnit,
+        recipeData.estimatedOG,
+        recipeData.boilTime
+      )
+      if (ibu !== null && ibu !== recipeData.estimatedIBU) {
+        updates.estimatedIBU = ibu
+      }
+    }
+
+    // Calculate SRM if not manually overridden
+    if (!manualOverrides.estimatedSRM) {
+      const srm = calculateSRM(
+        recipeData.grains,
+        recipeData.batchSize,
+        recipeData.batchSizeUnit
+      )
+      if (srm !== null && srm !== recipeData.estimatedSRM) {
+        updates.estimatedSRM = srm
+      }
+    }
+
+    // Apply all updates at once
+    if (Object.keys(updates).length > 0) {
+      setRecipeData(prev => ({ ...prev, ...updates }))
+    }
+  }, [
+    recipeData.grains,
+    recipeData.hops,
+    recipeData.yeasts,
+    recipeData.batchSize,
+    recipeData.batchSizeUnit,
+    recipeData.efficiency,
+    recipeData.boilTime,
+    recipeData.estimatedOG,
+    recipeData.estimatedFG,
+    manualOverrides
+  ])
 
   useEffect(() => {
     loadBeerStyles()
@@ -301,6 +507,8 @@ export default function RecipeBuilderPage() {
                     recipeData={recipeData}
                     setRecipeData={setRecipeData}
                     beerStyles={beerStyles}
+                    manualOverrides={manualOverrides}
+                    setManualOverrides={setManualOverrides}
                   />
                 </Tab.Panel>
 
@@ -392,11 +600,36 @@ export default function RecipeBuilderPage() {
   )
 }
 
-function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
+function RecipeInfoTab({ recipeData, setRecipeData, beerStyles, manualOverrides, setManualOverrides }) {
   const handleInputChange = (field, value) => {
     setRecipeData(prev => ({
       ...prev,
       [field]: value
+    }))
+  }
+
+  const handleEstimatedValueChange = (field, value) => {
+    // Mark this field as manually overridden
+    setManualOverrides(prev => ({
+      ...prev,
+      [field]: true
+    }))
+    setRecipeData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const resetToCalculated = (field) => {
+    // Clear manual override flag
+    setManualOverrides(prev => ({
+      ...prev,
+      [field]: false
+    }))
+    // Clear the value (will be recalculated by useEffect)
+    setRecipeData(prev => ({
+      ...prev,
+      [field]: null
     }))
   }
 
@@ -433,19 +666,31 @@ function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Beer Style</label>
-          <StandardDropdown
-            value={recipeData.styleId}
-            onChange={(e) => handleInputChange('styleId', e.target.value)}
-            options={[
-              { value: '', label: 'Select a style' },
-              ...beerStyles.map(style => ({
-                value: style.styleId,
-                label: `${style.bjcpNumber ? `${style.bjcpNumber} - ` : ''}${style.styleName}`
-              }))
-            ]}
-            placeholder="Select a style"
-            className="w-full"
+          <StyledCombobox
+            label="Beer Style"
+            options={beerStyles.map(style => ({
+              id: style.styleId,
+              name: `${style.bjcpNumber ? `${style.bjcpNumber} - ` : ''}${style.styleName}`,
+              styleId: style.styleId,
+              styleName: style.styleName
+            }))}
+            value={recipeData.styleId ?
+              beerStyles.map(style => ({
+                id: style.styleId,
+                name: `${style.bjcpNumber ? `${style.bjcpNumber} - ` : ''}${style.styleName}`,
+                styleId: style.styleId,
+                styleName: style.styleName
+              })).find(s => s.id === recipeData.styleId) : null
+            }
+            onChange={(selectedStyle) => {
+              if (selectedStyle) {
+                handleInputChange('styleId', selectedStyle.id)
+              } else {
+                handleInputChange('styleId', '')
+              }
+            }}
+            placeholder="Type to search beer styles..."
+            className="w-[400px]"
           />
         </div>
       </div>
@@ -517,7 +762,7 @@ function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
               min="1.000"
               max="1.200"
               value={recipeData.estimatedOG || ''}
-              onChange={(e) => handleInputChange('estimatedOG', e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => handleEstimatedValueChange('estimatedOG', e.target.value ? parseFloat(e.target.value) : null)}
               placeholder="1.050"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -531,7 +776,7 @@ function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
               min="0.990"
               max="1.050"
               value={recipeData.estimatedFG || ''}
-              onChange={(e) => handleInputChange('estimatedFG', e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => handleEstimatedValueChange('estimatedFG', e.target.value ? parseFloat(e.target.value) : null)}
               placeholder="1.010"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -545,7 +790,7 @@ function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
               min="0"
               max="15"
               value={recipeData.estimatedABV || ''}
-              onChange={(e) => handleInputChange('estimatedABV', e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => handleEstimatedValueChange('estimatedABV', e.target.value ? parseFloat(e.target.value) : null)}
               placeholder="5.2"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -558,7 +803,7 @@ function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
               min="0"
               max="150"
               value={recipeData.estimatedIBU || ''}
-              onChange={(e) => handleInputChange('estimatedIBU', e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => handleEstimatedValueChange('estimatedIBU', e.target.value ? parseFloat(e.target.value) : null)}
               placeholder="35"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -572,7 +817,7 @@ function RecipeInfoTab({ recipeData, setRecipeData, beerStyles }) {
               min="1"
               max="40"
               value={recipeData.estimatedSRM || ''}
-              onChange={(e) => handleInputChange('estimatedSRM', e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => handleEstimatedValueChange('estimatedSRM', e.target.value ? parseFloat(e.target.value) : null)}
               placeholder="8"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />

@@ -159,91 +159,106 @@ export default function RecipesPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipes.map((recipe) => (
-              <div
-                key={recipe.recipeId}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {recipe.name}
-                      </h3>
-                      {recipe.styleName && (
-                        <p className="text-sm text-gray-600">{recipe.styleName}</p>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Recipe Name
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Style
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Batch Size
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ABV / IBU
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ingredients
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {recipes.map((recipe, index) => (
+                  <tr
+                    key={recipe.recipeId}
+                    onDoubleClick={() => handleEditRecipe(recipe.recipeId)}
+                    className={`
+                      ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                      hover:bg-blue-50 cursor-pointer transition-colors
+                    `}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {recipe.name}
+                          </div>
+                          {recipe.description && (
+                            <div className="text-xs text-gray-500 truncate max-w-xs">
+                              {recipe.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{recipe.styleName || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {recipe.batchSize} {recipe.batchSizeUnit}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {recipe.estimatedABV ? `${recipe.estimatedABV}%` : '-'}
+                        {recipe.estimatedABV && recipe.estimatedIBU && ' / '}
+                        {recipe.estimatedIBU || ''}
+                      </div>
+                      {recipe.estimatedOG && recipe.estimatedFG && (
+                        <div className="text-xs text-gray-500">
+                          OG: {recipe.estimatedOG} / FG: {recipe.estimatedFG}
+                        </div>
                       )}
-                    </div>
-                    <div className="flex gap-2 ml-4">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-xs text-gray-500">
+                        <span className="inline-flex items-center mr-3">
+                          <span className="font-medium text-gray-700">{recipe.grains?.length || 0}</span>
+                          <span className="ml-1">grains</span>
+                        </span>
+                        <span className="inline-flex items-center mr-3">
+                          <span className="font-medium text-gray-700">{recipe.hops?.length || 0}</span>
+                          <span className="ml-1">hops</span>
+                        </span>
+                        <span className="inline-flex items-center">
+                          <span className="font-medium text-gray-700">{recipe.yeasts?.length || 0}</span>
+                          <span className="ml-1">yeast</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => handleEditRecipe(recipe.recipeId)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Edit recipe"
-                      >
-                        <PencilSquareIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRecipe(recipe.recipeId, recipe.name)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteRecipe(recipe.recipeId, recipe.name)
+                        }}
+                        className="text-red-600 hover:text-red-900 inline-flex items-center"
                         title="Delete recipe"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
-                    </div>
-                  </div>
-
-                  {recipe.description && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                      {recipe.description}
-                    </p>
-                  )}
-
-                  <div className="border-t border-gray-200 pt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Batch Size:</span>
-                      <span className="font-medium text-gray-900">
-                        {recipe.batchSize} {recipe.batchSizeUnit}
-                      </span>
-                    </div>
-                    {recipe.estimatedOG && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">OG:</span>
-                        <span className="font-medium text-gray-900">{recipe.estimatedOG}</span>
-                      </div>
-                    )}
-                    {recipe.estimatedFG && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">FG:</span>
-                        <span className="font-medium text-gray-900">{recipe.estimatedFG}</span>
-                      </div>
-                    )}
-                    {recipe.estimatedABV && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">ABV:</span>
-                        <span className="font-medium text-gray-900">{recipe.estimatedABV}%</span>
-                      </div>
-                    )}
-                    {recipe.estimatedIBU && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">IBU:</span>
-                        <span className="font-medium text-gray-900">{recipe.estimatedIBU}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border-t border-gray-200 pt-4 mt-4">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center gap-4">
-                        <span>{recipe.grains?.length || 0} grains</span>
-                        <span>{recipe.hops?.length || 0} hops</span>
-                        <span>{recipe.yeasts?.length || 0} yeast</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -419,4 +419,46 @@ export const batchAPI = {
   deleteBatch: (id) => api.delete(`/batch/${id}`),
 }
 
+// Equipment API endpoints
+export const equipmentAPI = {
+  // Get all equipment with optional filters (status, equipmentTypeId)
+  getEquipment: (params = {}) => api.get('/equipment', { params }),
+
+  // Get specific equipment by ID
+  getEquipmentById: (id) => api.get(`/equipment/${id}`),
+
+  // Get available equipment (optional filters: equipmentTypeId, startTime, endTime)
+  getAvailableEquipment: (params = {}) => api.get('/equipment/available', { params }),
+
+  // Create new equipment
+  createEquipment: (equipmentData) => api.post('/equipment', equipmentData),
+
+  // Update equipment
+  updateEquipment: (id, equipmentData) => api.put(`/equipment/${id}`, equipmentData),
+
+  // Update equipment status only
+  updateEquipmentStatus: (id, status) => api.patch(`/equipment/${id}/status`, { status }),
+
+  // Delete equipment
+  deleteEquipment: (id) => api.delete(`/equipment/${id}`),
+}
+
+// Equipment Type API endpoints
+export const equipmentTypeAPI = {
+  // Get all equipment types
+  getEquipmentTypes: () => api.get('/equipmenttype'),
+
+  // Get specific equipment type by ID
+  getEquipmentType: (id) => api.get(`/equipmenttype/${id}`),
+
+  // Create new equipment type
+  createEquipmentType: (typeData) => api.post('/equipmenttype', typeData),
+
+  // Update equipment type
+  updateEquipmentType: (id, typeData) => api.put(`/equipmenttype/${id}`, typeData),
+
+  // Delete equipment type (only if no equipment instances exist)
+  deleteEquipmentType: (id) => api.delete(`/equipmenttype/${id}`),
+}
+
 export default api

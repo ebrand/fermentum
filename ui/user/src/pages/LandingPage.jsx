@@ -2,7 +2,6 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
 import {
-  BeakerIcon,
   ChartBarIcon,
   UsersIcon,
   CogIcon,
@@ -10,12 +9,15 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline'
 
-export default function LandingPage() {
+import {
+  GrainIcon
+ } from '../components/Icons'
+
+ export default function LandingPage() {
   const navigate = useNavigate()
   const { isAuthenticated, invalidateSession } = useSession()
 
-
-  const handleGetStarted = () => {
+   const handleGetStarted = () => {
     if (isAuthenticated) {
       navigate('/tenant-selection')
     } else {
@@ -30,7 +32,7 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: BeakerIcon,
+      icon: GrainIcon,
       title: 'Recipe Management',
       description: 'Create, store, and scale your brewing recipes with precision. Track ingredients, processes, and variations.'
     },
@@ -62,18 +64,18 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-fermentum-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <BeakerIcon className="h-8 w-8 text-fermentum-800" />
-              <span className="ml-2 text-2xl font-bold text-gray-900">Fermentum</span>
+              <GrainIcon className="h-10 w-10 text-gray-400" />
+              <span className="-ml-2 text-2xl font-bold text-white">Fermentum</span>
             </div>
             <div className="flex items-center gap-3">
               {!isAuthenticated && (
                   <button
                     onClick={handleGetStarted}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-fermentum-800 hover:bg-fermentum-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fermentum-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-fermentum-800 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
                   >
                     Sign Up or Sign In
                     <ArrowRightIcon className="ml-2 h-4 w-4" />
@@ -83,13 +85,13 @@ export default function LandingPage() {
                 <>
                   <button
                     onClick={handleLogout}
-                    className="text-sm text-gray-500 hover:text-gray-700"
+                    className="text-sm text-fermentum-200 hover:text-white"
                   >
                     Sign out
                   </button>
                   <button
                     onClick={handleGetStarted}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-fermentum-600 hover:bg-fermentum-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fermentum-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-fermentum-800 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
                   >
                     Go to Dashboard
                     <ArrowRightIcon className="ml-2 h-4 w-4" />
@@ -222,7 +224,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <BeakerIcon className="h-6 w-6 text-fermentum-800" />
+              <GrainIcon className="h-6 w-6 text-white" />
               <span className="ml-2 text-lg font-semibold text-white">Fermentum</span>
             </div>
             <p className="text-gray-400">© 2025 Fermentum. All rights reserved.</p>

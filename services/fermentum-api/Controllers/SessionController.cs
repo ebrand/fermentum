@@ -30,10 +30,10 @@ namespace Fermentum.Auth.Controllers
 
                 if (session == null)
                 {
-                    return BadRequest(new SessionResponse
+                    return Unauthorized(new SessionResponse
                     {
                         Success = false,
-                        Message = "Invalid token or user not found"
+                        Message = "Invalid or expired token"
                     });
                 }
 

@@ -6,7 +6,17 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Stytch__ProjectId": "project-test-602a83cb-068f-4dd4-a473-0bb708335ee6",
+        "Stytch__ProjectSecret": "secret-test-orObSrhvLvkqC2IMClzRxug7FICBkkqKH0g=",
+        "Stytch__PublicToken": "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb",
+        "Jwt__SecretKey": "3hk4bie7ftgw34iub4qiyrg863trf9283hruiq3griyfqgoirhu3qrq",
+        "Jwt__Issuer": "https://auth.fermentum.dev",
+        "Jwt__Audience": "https://fermentum.dev",
+        "Stripe__SecretKey": "sk_test_51S9841S4Vkg3juZcdlrb3ir0DUZgYKQQTJkmt0Vj9aGWaQq2Me6VXqCBhgWGm8IKVcNQ4JwNQyu8LBmfDIR35AJV00nfVOyx8t",
+        "Stripe__PublishableKey": "pk_test_51S9841S4Vkg3juZc0uHOaNnNBJrFfyhetvmmIoRbCEdxnnwKnCZTtQAMg9Rq38kLVq71TqSt1d0TtXBTOOw1qfOw00vYAcStzo",
+        "QuickBooksOnline__ClientId": "ABz2UqE4t2pzruG4EM4bw4mSeKH5NGBB6kz0DEV1UPRbBTSHB8",
+        "QuickBooksOnline__ClientSecret": "RhrAUSQ4MEPUJoYjBwgjEVM5Pb45mloPoBQZqGKU"
       }
     },
     "https": {
@@ -15,7 +25,17 @@
       "launchBrowser": false,
       "applicationUrl": "https://localhost:5001;http://localhost:5000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Stytch__ProjectId": "project-test-602a83cb-068f-4dd4-a473-0bb708335ee6",
+        "Stytch__ProjectSecret": "secret-test-orObSrhvLvkqC2IMClzRxug7FICBkkqKH0g=",
+        "Stytch__PublicToken": "public-token-test-92b06025-3b67-4193-a934-54b95bb5bbcb",
+        "Jwt__SecretKey": "3hk4bie7ftgw34iub4qiyrg863trf9283hruiq3griyfqgoirhu3qrq",
+        "Jwt__Issuer": "https://auth.fermentum.dev",
+        "Jwt__Audience": "https://fermentum.dev",
+        "Stripe__SecretKey": "sk_test_51S9841S4Vkg3juZcdlrb3ir0DUZgYKQQTJkmt0Vj9aGWaQq2Me6VXqCBhgWGm8IKVcNQ4JwNQyu8LBmfDIR35AJV00nfVOyx8t",
+        "Stripe__PublishableKey": "pk_test_51S9841S4Vkg3juZc0uHOaNnNBJrFfyhetvmmIoRbCEdxnnwKnCZTtQAMg9Rq38kLVq71TqSt1d0TtXBTOOw1qfOw00vYAcStzo",
+        "QuickBooksOnline__ClientId": "ABz2UqE4t2pzruG4EM4bw4mSeKH5NGBB6kz0DEV1UPRbBTSHB8",
+        "QuickBooksOnline__ClientSecret": "RhrAUSQ4MEPUJoYjBwgjEVM5Pb45mloPoBQZqGKU"
       }
     }
   }

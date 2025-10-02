@@ -32,7 +32,9 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
     stepType: 'Temperature',
     temperature: '',
     temperatureUnit: '°F',
-    duration: '',
+    durationDays: '',
+    durationHours: '',
+    durationMinutes: '',
     amount: '',
     amountUnit: 'oz',
     description: '',
@@ -84,6 +86,12 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
     // Generate a temporary unique ID
     const uniqueId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
+    // Calculate total duration in minutes from days, hours, and minutes
+    const days = newStep.durationDays ? parseInt(newStep.durationDays) : 0
+    const hours = newStep.durationHours ? parseInt(newStep.durationHours) : 0
+    const minutes = newStep.durationMinutes ? parseInt(newStep.durationMinutes) : 0
+    const totalDuration = (days * 1440) + (hours * 60) + minutes
+
     const step = {
       id: uniqueId, // Temporary ID for UI management
       stepName: newStep.stepName.trim(),
@@ -91,7 +99,7 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
       stepType: newStep.stepType || 'Temperature',
       temperature: newStep.temperature ? parseFloat(newStep.temperature) : null,
       temperatureUnit: newStep.temperatureUnit || '°F',
-      duration: newStep.duration ? parseInt(newStep.duration) : null,
+      duration: totalDuration > 0 ? totalDuration : null,
       amount: newStep.amount ? parseFloat(newStep.amount) : null,
       amountUnit: newStep.amountUnit || null,
       description: newStep.description.trim() || null,
@@ -113,7 +121,9 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
       stepType: 'Temperature',
       temperature: '',
       temperatureUnit: '°F',
-      duration: '',
+      durationDays: '',
+      durationHours: '',
+      durationMinutes: '',
       amount: '',
       amountUnit: 'oz',
       description: '',
@@ -161,10 +171,19 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
   }
 
   const startEdit = (step) => {
+    // Convert total minutes to days, hours, and minutes
+    const totalMinutes = step.duration || 0
+    const days = Math.floor(totalMinutes / 1440)
+    const remainingAfterDays = totalMinutes % 1440
+    const hours = Math.floor(remainingAfterDays / 60)
+    const minutes = remainingAfterDays % 60
+
     setEditingStep({
       ...step,
       temperature: step.temperature?.toString() || '',
-      duration: step.duration?.toString() || '',
+      durationDays: days > 0 ? days.toString() : '',
+      durationHours: hours > 0 ? hours.toString() : '',
+      durationMinutes: minutes > 0 ? minutes.toString() : '',
       amount: step.amount?.toString() || '',
       alertBefore: step.alertBefore?.toString() || ''
     })
@@ -172,6 +191,12 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
 
   const saveEdit = () => {
     if (!editingStep.stepName || !editingStep.phase) return
+
+    // Calculate total duration in minutes from days, hours, and minutes
+    const days = editingStep.durationDays ? parseInt(editingStep.durationDays) : 0
+    const hours = editingStep.durationHours ? parseInt(editingStep.durationHours) : 0
+    const minutes = editingStep.durationMinutes ? parseInt(editingStep.durationMinutes) : 0
+    const totalDuration = (days * 1440) + (hours * 60) + minutes
 
     setModalData(prev => ({
       ...prev,
@@ -184,7 +209,7 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
               ...editingStep,
               stepName: editingStep.stepName.trim(),
               temperature: editingStep.temperature ? parseFloat(editingStep.temperature) : null,
-              duration: editingStep.duration ? parseInt(editingStep.duration) : null,
+              duration: totalDuration > 0 ? totalDuration : null,
               amount: editingStep.amount ? parseFloat(editingStep.amount) : null,
               alertBefore: editingStep.alertBefore ? parseInt(editingStep.alertBefore) : null,
               description: editingStep.description?.trim() || null,
@@ -339,6 +364,9 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
                     Type
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">
+                    Equipment Required
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">
                     Temperature
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">
@@ -375,6 +403,18 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
                               className="w-full text-sm"
                             />
                           </td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {step.equipmentTypeName ? (
+                              <div>
+                                <div className="font-medium">{step.equipmentTypeName}</div>
+                                {step.equipmentCapacityMin && (
+                                  <div className="text-xs text-gray-500">
+                                    Min: {step.equipmentCapacityMin} {step.equipmentCapacityUnit}
+                                  </div>
+                                )}
+                              </div>
+                            ) : '-'}
+                          </td>
                           <td className="px-4 py-2">
                             <div className="flex items-center">
                               <input
@@ -388,15 +428,36 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
                             </div>
                           </td>
                           <td className="px-4 py-2">
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-1">
                               <input
                                 type="number"
-                                value={editingStep.duration}
-                                onChange={(e) => setEditingStep(prev => ({ ...prev, duration: e.target.value }))}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
+                                value={editingStep.durationDays}
+                                onChange={(e) => setEditingStep(prev => ({ ...prev, durationDays: e.target.value }))}
+                                className="w-12 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
                                 placeholder="0"
+                                min="0"
                               />
-                              <span className="ml-1 text-sm text-gray-500">min</span>
+                              <span className="text-xs text-gray-500">d</span>
+                              <input
+                                type="number"
+                                value={editingStep.durationHours}
+                                onChange={(e) => setEditingStep(prev => ({ ...prev, durationHours: e.target.value }))}
+                                className="w-12 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
+                                placeholder="0"
+                                min="0"
+                                max="23"
+                              />
+                              <span className="text-xs text-gray-500">h</span>
+                              <input
+                                type="number"
+                                value={editingStep.durationMinutes}
+                                onChange={(e) => setEditingStep(prev => ({ ...prev, durationMinutes: e.target.value }))}
+                                className="w-12 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
+                                placeholder="0"
+                                min="0"
+                                max="59"
+                              />
+                              <span className="text-xs text-gray-500">m</span>
                             </div>
                           </td>
                           <td className="px-4 py-2">
@@ -453,11 +514,36 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
                             </div>
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">{step.stepType || '-'}</td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {step.equipmentTypeName ? (
+                              <div>
+                                <div className="font-medium">{step.equipmentTypeName}</div>
+                                {step.equipmentCapacityMin && (
+                                  <div className="text-xs text-gray-500">
+                                    Min: {step.equipmentCapacityMin} {step.equipmentCapacityUnit}
+                                  </div>
+                                )}
+                              </div>
+                            ) : '-'}
+                          </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
                             {step.temperature ? `${step.temperature}${step.temperatureUnit || '°F'}` : '-'}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
-                            {step.duration ? `${step.duration} min` : '-'}
+                            {step.duration ? (() => {
+                              const days = Math.floor(step.duration / 1440)
+                              const remainingAfterDays = step.duration % 1440
+                              const hours = Math.floor(remainingAfterDays / 60)
+                              const minutes = remainingAfterDays % 60
+
+                              if (days > 0) {
+                                return `${days}d ${hours}h ${minutes}m`
+                              } else if (hours > 0) {
+                                return `${hours}h ${minutes}m`
+                              } else {
+                                return `${minutes}m`
+                              }
+                            })() : '-'}
                           </td>
                           <td className="px-4 py-2">
                             <div className="flex space-x-2">
@@ -545,16 +631,47 @@ export default function RecipeStepsTab({ modalData, setModalData }) {
           {/* Duration */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-            <div className="flex items-stretch">
-              <input
-                type="number"
-                value={newStep.duration}
-                onChange={(e) => setNewStep(prev => ({ ...prev, duration: e.target.value }))}
-                placeholder="60"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
-              />
-              <div className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">
-                min
+            <div className="flex items-stretch gap-2">
+              <div className="flex items-stretch flex-1">
+                <input
+                  type="number"
+                  value={newStep.durationDays}
+                  onChange={(e) => setNewStep(prev => ({ ...prev, durationDays: e.target.value }))}
+                  placeholder="0"
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
+                />
+                <div className="px-2 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">
+                  d
+                </div>
+              </div>
+              <div className="flex items-stretch flex-1">
+                <input
+                  type="number"
+                  value={newStep.durationHours}
+                  onChange={(e) => setNewStep(prev => ({ ...prev, durationHours: e.target.value }))}
+                  placeholder="0"
+                  min="0"
+                  max="23"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
+                />
+                <div className="px-2 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">
+                  h
+                </div>
+              </div>
+              <div className="flex items-stretch flex-1">
+                <input
+                  type="number"
+                  value={newStep.durationMinutes}
+                  onChange={(e) => setNewStep(prev => ({ ...prev, durationMinutes: e.target.value }))}
+                  placeholder="0"
+                  min="0"
+                  max="59"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-fermentum-500 focus:border-transparent"
+                />
+                <div className="px-2 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm text-gray-600">
+                  m
+                </div>
               </div>
             </div>
           </div>
